@@ -1,0 +1,15 @@
+.gradle/
+.idea/
+.kotlin/
+build/
+out/
+kotlin-js-store/
+*.iml
+.DS_Store
+
+# Ignore Gradle project-specific cache directory
+.gradle
+
+# Ignore Gradle build output directory
+build
+/local.properties
