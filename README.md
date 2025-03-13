@@ -1,2 +1,2 @@
 # gradle-aconfig
-a aconfig parser cradle plugin
+an aconfig parser gradle plugin
