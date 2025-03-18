@@ -22,8 +22,8 @@ public class GradleAconfigPlugin implements Plugin<Project> {
 
         project.afterEvaluate(p -> {
             File configFile = project.file(extension.aconfigFile);
-            String buildType = (String) project.getProperties().getOrDefault("buildType", "release");
-            String selectedFolder = extension.buildTypeMapping.getOrDefault(buildType, buildType);
+            String buildType = (String) project.getProperties().get("buildType");
+            String selectedFolder = extension.buildTypeMapping.getOrDefault(buildType, "release");
             List<File> textProtoFiles = cloneAndFetchTextProtoFiles(project, extension.textProtoRepo, selectedFolder, extension);
 
             if (configFile.exists()) {
