@@ -6,13 +6,23 @@ import java.util.List;
 import java.util.Map;
 
 abstract class AConfigExtension {
-    String aconfigFile = "config.aconfig";
     /**
-     * set repo that contains aconfig textproto
+     * the aconfig file
+     * <p>
+     * is normally {projectroot}/aconfig/{filename}.aconfig
+     */
+    String aconfigFile = "aconfig/config.aconfig";
+    /**
+     * the repo that contains aconfig textproto
      * <p>
      * the textproto files should be in a different repo than the one the application is in (in AOSP is is <a href="https://cs.android.com/android/platform/superproject/main/+/main:build/release/">platform/build/release</a>)
      */
     String textProtoRepo = null;
+    /**
+     * aconfig file map for textproto files
+     * <p>
+     * AOSP uses eng/userdebug for debug values and uses the first part of the build id (e.g. bp1a, ap4a, etc) or user for release/user builds
+     */
     Map<String, String> buildTypeMapping = new HashMap<String, String>() {{
         put("debug", "eng"); // eng is the most debuggable build type in AOSP
         put("release", "bp1a"); // bp1a is (part of) the build id for Android 15 QPR2
