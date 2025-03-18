@@ -32,4 +32,4 @@ jobs:
 
       - name: Publish to Maven Central
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'dot166/gradle-aconfig' }}
-        run: ./gradlew j-Lib-core:publishAndReleaseToMavenCentral --no-configuration-cache
+        run: ./gradlew publishAndReleaseToMavenCentral --no-configuration-cache
