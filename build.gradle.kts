@@ -13,11 +13,6 @@ plugins {
     id("com.vanniktech.maven.publish") version "0.31.0"
 }
 
-repositories {
-    // Use Maven Central for resolving dependencies.
-    mavenCentral()
-}
-
 gradlePlugin {
     // Define the plugin
     val aconfig by plugins.creating {
@@ -58,4 +53,9 @@ mavenPublishing {
     }
 }
 
+dependencies {
+    implementation("com.android.tools.build:gradle:8.9.0")
+    implementation(gradleKotlinDsl())
+    implementation("org.eclipse.jgit:org.eclipse.jgit:6.10.0.202406032230-r")
+}
 

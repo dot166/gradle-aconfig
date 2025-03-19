@@ -1,8 +1,13 @@
 package io.github.dot166.aconfig;
 
+import org.gradle.api.Action;
+import org.gradle.api.NonNullApi;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
-import org.gradle.internal.impldep.org.eclipse.jgit.api.Git;
+import org.gradle.api.Task;
+import org.gradle.api.provider.Provider;
+import org.gradle.api.tasks.TaskProvider;
+import org.eclipse.jgit.api.Git;
 
 import java.io.File;
 import java.io.IOException;
@@ -15,24 +20,41 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import com.android.build.api.dsl.ApplicationBuildType;
+import com.android.build.api.dsl.ApplicationExtension;
+import com.android.build.api.variant.AndroidComponentsExtension;
+import com.android.build.api.variant.ApplicationVariant;
+import com.android.build.gradle.BaseExtension;
+import com.android.build.api.dsl.BuildType;
+import com.android.build.api.variant.ApplicationAndroidComponentsExtension;
+import com.android.build.api.variant.Variant;
+
 public class GradleAconfigPlugin implements Plugin<Project> {
     @Override
     public void apply(Project project) {
         AConfigExtension extension = project.getExtensions().create("aconfig", AConfigExtension.class);
 
-        project.afterEvaluate(p -> {
-            File configFile = project.file(extension.aconfigFile);
-            String buildType = (String) project.getProperties().get("buildType");
-            String selectedFolder = extension.buildTypeMapping.getOrDefault(buildType, "release");
-            List<File> textProtoFiles = cloneAndFetchTextProtoFiles(project, extension.textProtoRepo, selectedFolder, extension);
+        // Detect which variant is currently being built
+        project.getGradle().getTaskGraph().whenReady(graph -> {
+            for (Task task : graph.getAllTasks()) {
+                if (task.getName().startsWith("assemble") || task.getName().startsWith("bundle")) {
+                    String variantName = task.getName().replace("assemble", "").replace("bundle", "").toLowerCase();
+                    File configFile = project.file(extension.aconfigFile);
+                    String buildType = (String) project.getProperties().get("buildType");
+                    String selectedFolder = extension.buildTypeMapping.getOrDefault(buildType, "release");
+                    List<File> textProtoFiles = cloneAndFetchTextProtoFiles(project, extension.textProtoRepo, selectedFolder, extension);
 
-            if (configFile.exists()) {
-                Map<String, String> properties = parseAConfig(configFile);
-                Map<String, String> resolvedProperties = resolveTextProtoValues(properties, textProtoFiles, extension, project);
-                generateJavaFile(project, resolvedProperties, extension);
-                project.getLogger().lifecycle("Generated Flags.java with properties from " + extension.aconfigFile + " and textproto files");
-            } else {
-                project.getLogger().lifecycle("No aconfig file found at " + extension.aconfigFile);
+                    project.getLogger().lifecycle(buildType);
+                    project.getLogger().lifecycle(selectedFolder);
+                    if (configFile.exists()) {
+                        Map<String, String> properties = parseAConfig(configFile);
+                        Map<String, String> resolvedProperties = resolveTextProtoValues(properties, textProtoFiles, extension, project);
+                        generateJavaFile(project, resolvedProperties, extension);
+                        project.getLogger().lifecycle("Generated Flags.java with properties from " + extension.aconfigFile + " and textproto files");
+                    } else {
+                        project.getLogger().lifecycle("No aconfig file found at " + extension.aconfigFile);
+                    }
+                }
             }
         });
     }
