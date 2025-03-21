@@ -19,13 +19,22 @@ public class AConfigExtension {
      */
     public String textProtoRepo = null;
     /**
+     * use values in the {reponame}/aconfig/eng folder in debug builds
+     *
+     * eng is the most debuggable build type in AOSP
+     */
+    public boolean useENGInDebugBuilds = false;
+    /**
      * aconfig file map for textproto files
      * <p>
      * AOSP uses eng/userdebug for debug values and uses the first part of the build id (e.g. bp1a, ap4a, etc) or user for release/user builds
      */
-    public Map<String, String> buildTypeMapping = new HashMap<String, String>() {{
-        put("debug", "eng"); // eng is the most debuggable build type in AOSP
-        put("release", "bp1a"); // bp1a is (part of) the build id for Android 15 QPR2
+    public List<String> commonBuildValues = new ArrayList<>() {{
+        add("root"); // root is the base config in AOSP
+        add("ap2a"); // ap2a is (part of) the build id for Android 14 QPR3
+        add("ap3a"); // ap3a is (part of) the build id for Android 15
+        add("ap4a"); // ap4a is (part of) the build id for Android 15 QPR1
+        add("bp1a"); // bp1a is (part of) the build id for Android 15 QPR2
     }};
     /**
      * package name for the flags.java file

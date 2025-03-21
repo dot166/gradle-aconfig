@@ -25,7 +25,7 @@ group = "io.github.dot166"
 version = "1.0.0"
 
 mavenPublishing {
-    coordinates(group.toString(), rootProject.name, version.toString())
+    coordinates(group.toString(), "aconfig", version.toString())
 
     pom {
         name = "aconfig"
@@ -57,5 +57,15 @@ dependencies {
     implementation("com.android.tools.build:gradle:8.9.0")
     implementation(gradleKotlinDsl())
     implementation("org.eclipse.jgit:org.eclipse.jgit:6.10.0.202406032230-r")
+    implementation("commons-io:commons-io:2.18.0")
+    // Use JUnit Jupiter for testing.
+    testImplementation("org.junit.jupiter:junit-jupiter:5.11.3")
+
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+}
+
+tasks.named<Test>("test") {
+    // Use JUnit Jupiter for unit tests.
+    useJUnitPlatform()
 }
 

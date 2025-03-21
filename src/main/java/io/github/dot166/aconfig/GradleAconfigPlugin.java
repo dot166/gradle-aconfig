@@ -1,60 +1,75 @@
 package io.github.dot166.aconfig;
 
-import org.gradle.api.Action;
-import org.gradle.api.NonNullApi;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.Task;
-import org.gradle.api.provider.Provider;
-import org.gradle.api.tasks.TaskProvider;
 import org.eclipse.jgit.api.Git;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
-import com.android.build.api.dsl.ApplicationBuildType;
 import com.android.build.api.dsl.ApplicationExtension;
-import com.android.build.api.variant.AndroidComponentsExtension;
-import com.android.build.api.variant.ApplicationVariant;
-import com.android.build.gradle.BaseExtension;
-import com.android.build.api.dsl.BuildType;
-import com.android.build.api.variant.ApplicationAndroidComponentsExtension;
-import com.android.build.api.variant.Variant;
 
 public class GradleAconfigPlugin implements Plugin<Project> {
     @Override
     public void apply(Project project) {
         AConfigExtension extension = project.getExtensions().create("aconfig", AConfigExtension.class);
+        ApplicationExtension androidComponents =
+                project.getExtensions().findByType(ApplicationExtension.class);
+        AtomicBoolean debuggable = new AtomicBoolean(false);
+        File projectDir = project.getProjectDir();
+        File buildDir = project.getBuildDir();
+
+        project.getTasks().register("generateFlags", task -> {
+            task.doLast(t -> {
+                File configFile = new File(projectDir, extension.aconfigFile);
+                List<File> textProtoFiles = cloneAndFetchTextProtoFiles(t, extension.textProtoRepo, debuggable.get(), extension, buildDir);
+
+                if (configFile.exists()) {
+                    Map<String, String> properties = parseAConfig(configFile);
+                    Map<String, String> resolvedProperties = resolveTextProtoValues(properties, textProtoFiles, extension, t);
+                    generateJavaFile(t, resolvedProperties, extension, buildDir);
+                    t.getLogger().lifecycle("Generated Flags.java with properties from " + extension.aconfigFile + " and textproto files");
+                } else {
+                    throw new RuntimeException("No aconfig file found at " + extension.aconfigFile);
+                }
+            });
+        });
+
+        try {
+            project.getTasks().getByName("preBuild").dependsOn("generateFlags");
+        } catch (Throwable throwable) {
+            project.getLogger().error("Couldn't link generateFlags task to agp");
+            project.getLogger().error("if you are using agp (com.android.application or com.android.library plugins) make sure that this plugin is applied after agp in your build files");
+            throwable.printStackTrace();
+        }
 
         // Detect which variant is currently being built
         project.getGradle().getTaskGraph().whenReady(graph -> {
-            for (Task task : graph.getAllTasks()) {
-                if (task.getName().startsWith("assemble") || task.getName().startsWith("bundle")) {
-                    String variantName = task.getName().replace("assemble", "").replace("bundle", "").toLowerCase();
-                    File configFile = project.file(extension.aconfigFile);
-                    String buildType = (String) project.getProperties().get("buildType");
-                    String selectedFolder = extension.buildTypeMapping.getOrDefault(buildType, "release");
-                    List<File> textProtoFiles = cloneAndFetchTextProtoFiles(project, extension.textProtoRepo, selectedFolder, extension);
-
-                    project.getLogger().lifecycle(buildType);
-                    project.getLogger().lifecycle(selectedFolder);
-                    if (configFile.exists()) {
-                        Map<String, String> properties = parseAConfig(configFile);
-                        Map<String, String> resolvedProperties = resolveTextProtoValues(properties, textProtoFiles, extension, project);
-                        generateJavaFile(project, resolvedProperties, extension);
-                        project.getLogger().lifecycle("Generated Flags.java with properties from " + extension.aconfigFile + " and textproto files");
-                    } else {
-                        project.getLogger().lifecycle("No aconfig file found at " + extension.aconfigFile);
+            if (project.getPlugins().hasPlugin("com.android.application")) {
+                for (Task task : graph.getAllTasks()) {
+                    if (task.getName().startsWith("assemble") || task.getName().startsWith("bundle")) {
+                        String variantName = task.getName().replace("assemble", "").replace("bundle", "").replace("ClassesToCompileJar", "").replace("ClassesToRuntimeJar", "").toLowerCase();
+                        if (androidComponents != null && !variantName.isBlank()) {
+                            debuggable.set(androidComponents.getBuildTypes().getByName(variantName).isDebuggable());
+                        } else {
+                            debuggable.set(false);
+                        }
                     }
                 }
+            } else {
+                // TODO: fix support for java applications and libraries and android libraries as this relies on android application agp for build types
+                // get from command line flags
             }
         });
     }
@@ -73,7 +88,7 @@ public class GradleAconfigPlugin implements Plugin<Project> {
         }
     }
 
-    private Map<String, String> resolveTextProtoValues(Map<String, String> properties, List<File> textProtoFiles, AConfigExtension extension, Project project) {
+    private Map<String, String> resolveTextProtoValues(Map<String, String> properties, List<File> textProtoFiles, AConfigExtension extension, Task project) {
         Map<String, String> textProtoValues = new HashMap<>();
         for (File file : textProtoFiles) {
             String name = null;
@@ -92,8 +107,13 @@ public class GradleAconfigPlugin implements Plugin<Project> {
                             }
                             switch (parts[0].trim()) {
                                 case "name" -> name = parts[1].trim().replace("\"", "");
-                                case "state" ->
-                                        textProtoValues.put(name, parts[1].trim().replace("\"", ""));
+                                case "state" -> {
+                                    if (textProtoValues.containsKey(name)) {
+                                        project.getLogger().lifecycle("value for " + name + " is overridden by the config for it in " + file.getPath().replace(file.getName(), ""));
+                                        textProtoValues.remove(name);
+                                    }
+                                    textProtoValues.put(name, parts[1].trim().replace("\"", ""));
+                                }
                                 case "permission" -> {
                                     if (parts[1].trim().equals("READ_ONLY")) {
                                         //do nothing, valid supported value
@@ -121,11 +141,11 @@ public class GradleAconfigPlugin implements Plugin<Project> {
         return resolvedProperties;
     }
 
-    private List<File> cloneAndFetchTextProtoFiles(Project project, String repoUrl, String selectedFolder, AConfigExtension extension) {
+    private List<File> cloneAndFetchTextProtoFiles(Task project, String repoUrl, boolean debuggable, AConfigExtension extension, File buildDir) {
         if (repoUrl == null) return Collections.emptyList();
 
-        File tempDir = new File(project.getBuildDir(), "tempRepo");
-        tempDir.delete();
+        File tempDir = new File(buildDir, "tempRepo");
+        deleteDirectory(tempDir);//tempDir.delete();
         tempDir.mkdirs();
 
         project.getLogger().lifecycle("Cloning repository: " + repoUrl);
@@ -135,17 +155,34 @@ public class GradleAconfigPlugin implements Plugin<Project> {
             e.printStackTrace();
         }
 
-        File targetFolder = new File(tempDir, "aconfig/" + selectedFolder + "/" + extension.flagsPackage);
-        if (targetFolder.exists() && targetFolder.isDirectory()) {
-            File[] files = targetFolder.listFiles((file) -> file.getName().endsWith(".textproto"));
-            return files != null ? Arrays.asList(files) : Collections.emptyList();
+        List<String> buildFolders = extension.commonBuildValues;
+        if (debuggable) {
+            buildFolders.add("userdebug");
+            if (extension.useENGInDebugBuilds) {
+                buildFolders.add("eng");
+            }
         } else {
-            return Collections.emptyList();
+            buildFolders.add("user");
         }
+
+        List<File> listFiles = new ArrayList<>();
+        if (extension.flagsPackage == null) {
+            throw new RuntimeException("flags package value is not set, please set it using the build.gradle file");
+        }
+        for (int i = 0; i < buildFolders.size(); i++) {
+            File targetFolder = new File(tempDir, "aconfig/" + buildFolders.get(i) + "/" + extension.flagsPackage);
+            if (targetFolder.exists() && targetFolder.isDirectory()) {
+                File[] files = targetFolder.listFiles((file) -> file.getName().endsWith(".textproto"));
+                listFiles.addAll(files != null ? Arrays.asList(files) : Collections.emptyList());
+            } else {
+                listFiles.addAll(Collections.emptyList());
+            }
+        }
+        return listFiles;
     }
 
-    private void generateJavaFile(Project project, Map<String, String> properties, AConfigExtension extension) {
-        File outputDir = new File(project.getBuildDir(), "generated/sources/aconfig");
+    private void generateJavaFile(Task project, Map<String, String> properties, AConfigExtension extension, File buildDir) {
+        File outputDir = new File(buildDir, "generated/sources/aconfig");
         outputDir.mkdirs();
         File outputFile = new File(outputDir, "Flags.java");
 
@@ -193,6 +230,16 @@ public class GradleAconfigPlugin implements Plugin<Project> {
 
         // Return in String type
         return builder.toString();
+    }
+
+    boolean deleteDirectory(File directoryToBeDeleted) {
+        File[] allContents = directoryToBeDeleted.listFiles();
+        if (allContents != null) {
+            for (File file : allContents) {
+                deleteDirectory(file);
+            }
+        }
+        return directoryToBeDeleted.delete();
     }
 
 }
