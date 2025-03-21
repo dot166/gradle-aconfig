@@ -56,7 +56,7 @@ mavenPublishing {
 dependencies {
     implementation("com.android.tools.build:gradle:8.9.0")
     implementation(gradleKotlinDsl())
-    implementation("org.eclipse.jgit:org.eclipse.jgit:6.10.0.202406032230-r")
+    implementation("org.eclipse.jgit:org.eclipse.jgit:7.2.0.202503040940-r")
     implementation("commons-io:commons-io:2.18.0")
     // Use JUnit Jupiter for testing.
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.3")
