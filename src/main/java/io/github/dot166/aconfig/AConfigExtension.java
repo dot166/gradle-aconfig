@@ -27,7 +27,7 @@ public class AConfigExtension {
     /**
      * aconfig file map for textproto files
      * <p>
-     * AOSP uses eng/userdebug for debug values and uses the first part of the build id (e.g. bp1a, ap4a, etc) or user for release/user builds
+     * AOSP uses eng/userdebug for debug/development builds, user for release/user builds and uses the first part of the build id (e.g. bp1a, ap4a, etc) as common values for both
      */
     public List<String> commonBuildValues = new ArrayList<>() {{
         add("root"); // root is the base config in AOSP
