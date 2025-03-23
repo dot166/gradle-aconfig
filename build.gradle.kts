@@ -22,7 +22,7 @@ gradlePlugin {
 }
 
 group = "io.github.dot166"
-version = "1.0.0"
+version = "1.0.1"
 
 mavenPublishing {
     coordinates(group.toString(), "aconfig", version.toString())

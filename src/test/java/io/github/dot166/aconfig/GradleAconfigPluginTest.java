@@ -19,15 +19,7 @@ import java.nio.file.Files;
  * A simple unit test for the 'io.github.dot166.aconfig' plugin.
  */
 class GradleAconfigPluginTest {
-    @Test void testPluginWithAGPAsApplication() throws IOException, InterruptedException {
-        // Create a test project and apply the plugin
-//        Project project = ProjectBuilder.builder().build();
-//        project.getPlugins().apply("com.android.application"); // add agp for the plugin to work
-//        project.getPlugins().apply("io.github.dot166.aconfig");
-//
-//        // Verify the result
-//        assertNotNull(project.getTasks().findByName("generateFlags"));
-
+    @Test void testPluginWithAGPAsApplication() throws Exception {
         // Setup the test build
         File projectDir = new File("build/test/agp/application");
         deleteDirectory(projectDir);
@@ -63,6 +55,8 @@ class GradleAconfigPluginTest {
                 
                 aconfig {
                     aconfigFile = "jLib.aconfig"
+                    textProtoRepo = "https://github.com/dot166/platform_build_release"
+                    flagsPackage = "io.github.dot166.jlib.flags"
                 }""");
         writeString(new File(projectDir, "local.properties"), "sdk.dir=" + projectDir.getAbsolutePath() + "/Sdk");
         writeString(new File(manifestDir, "AndroidManifest.xml"), """
@@ -82,6 +76,9 @@ class GradleAconfigPluginTest {
         processBuilder.directory(projectDir);
         Process process = processBuilder.start();
         process.waitFor();
+        if (process.exitValue() != GradleAconfigPlugin.errorCodes.Everything_is_Fine.ordinal()) {
+            throw new RuntimeException(toString_ReadAllBytes(process.getErrorStream()));
+        }
         GradleRunner runner = GradleRunner.create();
         runner.forwardOutput();
         runner.withPluginClasspath();
@@ -90,14 +87,6 @@ class GradleAconfigPluginTest {
         BuildResult result = runner.build();
     }
     @Test void testPluginWithAGPAsLibrary() throws Exception {
-        // Create a test project and apply the plugin
-//        Project project = ProjectBuilder.builder().build();
-//        project.getPlugins().apply("com.android.application"); // add agp for the plugin to work
-//        project.getPlugins().apply("io.github.dot166.aconfig");
-//
-//        // Verify the result
-//        assertNotNull(project.getTasks().findByName("generateFlags"));
-
         // Setup the test build
         File projectDir = new File("build/test/agp/library");
         deleteDirectory(projectDir);
@@ -131,6 +120,8 @@ class GradleAconfigPluginTest {
                 
                 aconfig {
                     aconfigFile = "jLib.aconfig"
+                    textProtoRepo = "https://github.com/dot166/platform_build_release"
+                    flagsPackage = "io.github.dot166.jlib.flags"
                 }""");
         writeString(new File(projectDir, "local.properties"), "sdk.dir=" + projectDir.getAbsolutePath() + "/Sdk");
 
@@ -142,10 +133,49 @@ class GradleAconfigPluginTest {
         processBuilder.directory(projectDir);
         Process process = processBuilder.start();
         process.waitFor();
+        if (process.exitValue() != GradleAconfigPlugin.errorCodes.Everything_is_Fine.ordinal()) {
+            throw new RuntimeException(toString_ReadAllBytes(process.getErrorStream()));
+        }
         GradleRunner runner = GradleRunner.create();
         runner.forwardOutput();
         runner.withPluginClasspath();
         runner.withArguments("assembleDebug");
+        runner.withProjectDir(projectDir);
+        BuildResult result = runner.build();
+    }
+    @Test void testPluginWithOpenJDK() throws Exception {
+        // Setup the test build
+        File projectDir = new File("build/test/java");
+        deleteDirectory(projectDir);
+        Files.createDirectories(projectDir.toPath());
+        writeString(new File(projectDir, "settings.gradle.kts"), "");
+        writeString(new File(projectDir, "build.gradle.kts"), """
+                plugins {
+                    `java`
+                    id("io.github.dot166.aconfig")
+                }
+                
+                aconfig {
+                    aconfigFile = "jLib.aconfig"
+                    textProtoRepo = "https://github.com/dot166/platform_build_release"
+                    flagsPackage = "io.github.dot166.jlib.flags"
+                }""");
+
+        // Run the build
+        copySdk(projectDir);
+        String command =
+                "curl -O https://raw.githubusercontent.com/dot166/jOS_j-lib/refs/heads/main/aconfig/jLib.aconfig";
+        ProcessBuilder processBuilder = new ProcessBuilder(command.split(" "));
+        processBuilder.directory(projectDir);
+        Process process = processBuilder.start();
+        process.waitFor();
+        if (process.exitValue() != GradleAconfigPlugin.errorCodes.Everything_is_Fine.ordinal()) {
+            throw new RuntimeException(toString_ReadAllBytes(process.getErrorStream()));
+        }
+        GradleRunner runner = GradleRunner.create();
+        runner.forwardOutput();
+        runner.withPluginClasspath();
+        runner.withArguments("generateFlags");
         runner.withProjectDir(projectDir);
         BuildResult result = runner.build();
     }

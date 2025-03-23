@@ -37,6 +37,18 @@ public class AConfigExtension {
         add("bp1a"); // bp1a is (part of) the build id for Android 15 QPR2
     }};
     /**
+     * aconfig file map for release/user textproto files
+     * <p>
+     * this is here to allow for adding custom build folders that are not in <a href="https://cs.android.com/android/platform/superproject/main/+/main:build/release/">platform/build/release</a> that are used in release/user builds
+     */
+    public List<String> customReleaseBuildValues = new ArrayList<>();
+    /**
+     * aconfig file map for debug/development textproto files
+     * <p>
+     * this is here to allow for adding custom build folders that are not in <a href="https://cs.android.com/android/platform/superproject/main/+/main:build/release/">platform/build/release</a> that are used in debug/development builds
+     */
+    public List<String> customDebugBuildValues = new ArrayList<>();
+    /**
      * package name for the flags.java file
      * <p>
      * should be the same here, in the aconfig file and in the textproto file
