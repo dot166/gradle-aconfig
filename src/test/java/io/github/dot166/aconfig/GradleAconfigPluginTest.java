@@ -162,7 +162,6 @@ class GradleAconfigPluginTest {
                 }""");
 
         // Run the build
-        copySdk(projectDir);
         String command =
                 "curl -O https://raw.githubusercontent.com/dot166/jOS_j-lib/refs/heads/main/aconfig/jLib.aconfig";
         ProcessBuilder processBuilder = new ProcessBuilder(command.split(" "));
