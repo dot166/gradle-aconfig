@@ -19,6 +19,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import com.android.build.api.dsl.ApplicationExtension;
+import com.android.build.gradle.BaseExtension;
 
 public class GradleAconfigPlugin implements Plugin<Project> {
     public enum errorCodes {
@@ -27,6 +28,8 @@ public class GradleAconfigPlugin implements Plugin<Project> {
         task_ran_manually_with_AGP,
         AGP_Application_not_found
     }
+
+    public File aconfigOutputDir;
     @Override
     public void apply(Project project) {
         AConfigExtension extension = project.getExtensions().create("aconfig", AConfigExtension.class);
@@ -35,6 +38,7 @@ public class GradleAconfigPlugin implements Plugin<Project> {
         AtomicBoolean debuggable = new AtomicBoolean(false);
         File projectDir = project.getProjectDir();
         File buildDir = project.getBuildDir();
+        aconfigOutputDir = new File(buildDir, "generated/source/aconfig/");
 
         project.getTasks().register("generateFlags", task -> {
             task.doLast(t -> {
@@ -44,7 +48,7 @@ public class GradleAconfigPlugin implements Plugin<Project> {
                 if (configFile.exists()) {
                     Map<String, String> properties = parseAConfig(configFile);
                     Map<String, String> resolvedProperties = resolveTextProtoValues(properties, textProtoFiles, extension, t);
-                    generateJavaFile(resolvedProperties, extension, buildDir);
+                    generateJavaFile(resolvedProperties, extension);
                     t.getLogger().lifecycle("Generated Flags.java with properties from " + extension.aconfigFile + " and textproto files");
                 } else {
                     throw new RuntimeException("No aconfig file found at " + extension.aconfigFile);
@@ -52,14 +56,17 @@ public class GradleAconfigPlugin implements Plugin<Project> {
             });
         });
 
-        try {
+        if (project.getPlugins().hasPlugin("com.android.base")) {
+            // Configure AGP source sets to include generated sources
+            project.getExtensions().configure(BaseExtension.class, android -> {
+                android.getSourceSets().getByName("main").getJava().srcDir(aconfigOutputDir);
+            });
             project.getTasks().getByName("preBuild").dependsOn("generateFlags");
-        } catch (Throwable throwable) {
-            if (project.getPlugins().hasPlugin("com.android.base")) {
-                project.getLogger().error("Couldn't link generateFlags task to agp");
-                project.getLogger().error("make sure that this plugin is applied after agp in your build files");
-                throwable.printStackTrace();
-            }
+        } else if (project.getPlugins().hasPlugin("org.gradle.java")) {
+            project.getExtensions().getByType(org.gradle.api.plugins.JavaPluginExtension.class)
+                .getSourceSets().getByName("main")
+                .getJava().srcDir(aconfigOutputDir);
+            project.getTasks().getByName("compileJava").dependsOn("generateFlags");
         }
 
         // Detect which variant is currently being built
@@ -238,8 +245,8 @@ public class GradleAconfigPlugin implements Plugin<Project> {
         return listFiles;
     }
 
-    private void generateJavaFile(Map<String, String> properties, AConfigExtension extension, File buildDir) {
-        File outputDir = new File(buildDir, "generated/source/aconfig/" + extension.flagsPackage.replace(".", "/"));
+    private void generateJavaFile(Map<String, String> properties, AConfigExtension extension) {
+        File outputDir = new File(aconfigOutputDir, extension.flagsPackage.replace(".", "/"));
         outputDir.mkdirs();
         File outputFile = new File(outputDir, "Flags.java");
 
