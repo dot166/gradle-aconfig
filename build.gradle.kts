@@ -22,7 +22,9 @@ gradlePlugin {
 }
 
 group = "io.github.dot166"
-version = "1.0.1"
+version = providers.exec {
+    commandLine("cat", "ver")
+}.standardOutput.asText.get().trim()
 
 mavenPublishing {
     coordinates(group.toString(), "aconfig", version.toString())
