@@ -239,7 +239,7 @@ public class GradleAconfigPlugin implements Plugin<Project> {
     }
 
     private void generateJavaFile(Map<String, String> properties, AConfigExtension extension, File buildDir) {
-        File outputDir = new File(buildDir, "generated/sources/aconfig");
+        File outputDir = new File(buildDir, "generated/source/aconfig/" + extension.flagsPackage.replace(".", "/"));
         outputDir.mkdirs();
         File outputFile = new File(outputDir, "Flags.java");
 
