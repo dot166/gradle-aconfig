@@ -305,6 +305,15 @@ public class GradleAconfigPlugin implements Plugin<Project> {
         }
         return directoryToBeDeleted.delete();
     }
+    
+    private Project createLibaconfig(Project rootproject) {
+        Project libaconfig = rootproject.getRootProject().project(":build:lib-aconfig");
+        libaconfig.getProjectDir().mkdirs();  // Ensure the project directory exists
+        libaconfig.setDescription("aconfig read/write flag implementation backend");
+
+        rootproject.getRootProject().getSubprojects().add(libaconfig);
+        return libaconfig;
+    }
 
 }
 
