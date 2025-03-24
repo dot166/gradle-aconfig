@@ -9,7 +9,7 @@ public class AConfigExtension {
     /**
      * the aconfig file
      * <p>
-     * is normally {projectroot}/aconfig/{filename}.aconfig
+     * is normally aconfig/{filename}.aconfig
      */
     public String aconfigFile = "aconfig/config.aconfig";
     /**
@@ -20,7 +20,7 @@ public class AConfigExtension {
     public String textProtoRepo = null;
     /**
      * use values in the {reponame}/aconfig/eng folder in debug builds
-     *
+     * <p>
      * eng is the most debuggable build type in AOSP
      */
     public boolean useENGInDebugBuilds = false;
