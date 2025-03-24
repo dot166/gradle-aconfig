@@ -4,6 +4,7 @@ import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.Task;
 import org.eclipse.jgit.api.Git;
+import org.gradle.api.plugins.JavaPluginExtension;
 
 import java.io.File;
 import java.io.IOException;
@@ -63,7 +64,7 @@ public class GradleAconfigPlugin implements Plugin<Project> {
             });
             project.getTasks().getByName("preBuild").dependsOn("generateFlags");
         } else if (project.getPlugins().hasPlugin("org.gradle.java")) {
-            project.getExtensions().getByType(org.gradle.api.plugins.JavaPluginExtension.class)
+            project.getExtensions().getByType(JavaPluginExtension.class)
                 .getSourceSets().getByName("main")
                 .getJava().srcDir(aconfigOutputDir);
             project.getTasks().getByName("compileJava").dependsOn("generateFlags");
@@ -306,13 +307,84 @@ public class GradleAconfigPlugin implements Plugin<Project> {
         return directoryToBeDeleted.delete();
     }
     
-    private Project createLibaconfig(Project rootproject) {
-        Project libaconfig = rootproject.getRootProject().project(":build:lib-aconfig");
-        libaconfig.getProjectDir().mkdirs();  // Ensure the project directory exists
-        libaconfig.setDescription("aconfig read/write flag implementation backend");
+    private void createLibaconfig(Project project) {
+        String libaconfigName = "libaconfig";
+        File libaconfigDir = new File(project.getBuildDir(), libaconfigName);
 
-        rootproject.getRootProject().getSubprojects().add(libaconfig);
-        return libaconfig;
+        // Ensure the subproject directory exists
+        if (!libaconfigDir.exists()) {
+            libaconfigDir.mkdirs();
+        }
+
+        // Create a build.gradle file dynamically
+        File buildFile = new File(libaconfigDir, "build.gradle.kts");
+        if (!buildFile.exists()) {
+            try (FileWriter writer = new FileWriter(buildFile)) {
+                writer.write("""
+                    plugins {
+                        java
+                    }
+
+                    dependencies {
+                        implementation("org.apache.commons:commons-lang3:3.12.0")
+                    }
+
+                    tasks.register("generateSources") {
+                        val outputDir = layout.buildDirectory.dir("generated-src").get().asFile
+                        doLast {
+                            outputDir.mkdirs()
+                            val generatedFile = File(outputDir, "generated/GeneratedClass.java")
+                            generatedFile.parentFile.mkdirs()
+                            generatedFile.writeText(\"""
+                                package generated;
+
+                                public class GeneratedClass {
+                                    public static String message() {
+                                        return "Hello from dynamically created subproject!";
+                                    }
+                                }
+                                \""".trimIndent())
+                        }
+                    }
+
+                    sourceSets.main {
+                        java.srcDir(layout.buildDirectory.dir("generated-src"))
+                    }
+
+                    tasks.named("compileJava") {
+                        dependsOn("generateSources")
+                    }
+                """);
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to create subproject build file", e);
+            }
+        }
+
+        // Register the subproject dynamically
+        project.getGradle().allprojects(proj -> {
+            if (proj.getProjectDir().equals(libaconfigDir)) {
+                configureSubproject(proj);
+            }
+        });
+
+        // Ensure the subproject is available
+        project.getGradle().projectsLoaded(gradle -> {
+            if (project.findProject(libaconfigName) == null) {
+                Project libaconfig = project.getRootProject().project(":build:" + libaconfigName);
+                configureSubproject(libaconfig);
+
+                project.getDependencies().add("implementation", libaconfig);
+            }
+        });
+    }
+
+    private void configureSubproject(Project subproject) {
+        subproject.getPlugins().apply("java");
+
+        // Ensure the sources are generated before compilation
+        subproject.getTasks().named("compileJava").configure(task -> {
+            task.dependsOn("generateSources");
+        });
     }
 
 }

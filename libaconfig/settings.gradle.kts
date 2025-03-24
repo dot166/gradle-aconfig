@@ -6,7 +6,7 @@
  * This project uses @Incubating APIs which are subject to change.
  */
 
-rootProject.name = "gradle-aconfig"
+rootProject.name = "libaconfig"
 
 pluginManagement {
     repositories {
@@ -22,3 +22,7 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
+
+include(":android")
+include(":java")
+ 

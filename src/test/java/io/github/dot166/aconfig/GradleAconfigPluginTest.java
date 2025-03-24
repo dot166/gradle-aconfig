@@ -174,7 +174,7 @@ class GradleAconfigPluginTest {
         GradleRunner runner = GradleRunner.create();
         runner.forwardOutput();
         runner.withPluginClasspath();
-        runner.withArguments("generateFlags");
+        runner.withArguments("build");
         runner.withProjectDir(projectDir);
         BuildResult result = runner.build();
     }
