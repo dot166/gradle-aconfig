@@ -1,4 +1,3 @@
-# v1.0.3
+# v1.0.4
 
- - improve javadocs
- - fix issues for agp applications
+ - more bugfixes
