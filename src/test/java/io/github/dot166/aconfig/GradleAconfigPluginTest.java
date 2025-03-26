@@ -54,7 +54,7 @@ class GradleAconfigPluginTest {
                 }
                 
                 aconfig {
-                    aconfigFile = "jLib.aconfig"
+                    aconfigFiles = "jLib.aconfig"
                     textProtoRepo = "https://github.com/dot166/platform_build_release"
                     flagsPackage = "io.github.dot166.jlib.flags"
                 }""");
@@ -119,7 +119,7 @@ class GradleAconfigPluginTest {
                 }
                 
                 aconfig {
-                    aconfigFile = "jLib.aconfig"
+                    aconfigFiles = "jLib.aconfig"
                     textProtoRepo = "https://github.com/dot166/platform_build_release"
                     flagsPackage = "io.github.dot166.jlib.flags"
                 }""");
@@ -156,7 +156,7 @@ class GradleAconfigPluginTest {
                 }
                 
                 aconfig {
-                    aconfigFile = "jLib.aconfig"
+                    aconfigFiles = "jLib.aconfig"
                     textProtoRepo = "https://github.com/dot166/platform_build_release"
                     flagsPackage = "io.github.dot166.jlib.flags"
                 }""");

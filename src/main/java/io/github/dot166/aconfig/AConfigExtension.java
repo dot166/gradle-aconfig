@@ -7,11 +7,11 @@ import java.util.Map;
 
 public class AConfigExtension {
     /**
-     * the aconfig file
+     * the aconfig files (separated by ';')
      * <p>
      * is normally aconfig/{filename}.aconfig
      */
-    public String aconfigFile = "aconfig/config.aconfig";
+    public String aconfigFiles = "aconfig/config.aconfig";
     /**
      * the repo that contains aconfig textproto
      * <p>

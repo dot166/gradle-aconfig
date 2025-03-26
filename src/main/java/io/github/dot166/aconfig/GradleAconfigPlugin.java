@@ -44,16 +44,24 @@ public class GradleAconfigPlugin implements Plugin<Project> {
 
         project.getTasks().register("generateFlags", task -> {
             task.doLast(t -> {
-                File configFile = new File(projectDir, extension.aconfigFile);
+                Map<String, String> properties = new HashMap<String, String>();
+                List<String> paths = Arrays.asList(extension.aconfigFiles.split(";"));
+                for (int i = 0; i< paths.size(); i++) {
+                    File configFile = new File(projectDir, paths.get(i));
+                    if (configFile.exists()) {
+                        properties.putAll(parseAConfig(configFile));
+                    } else {
+                        t.getLogger().error("No aconfig file found at {}", paths.get(i));
+                    }
+                }
                 List<File> textProtoFiles = cloneAndFetchTextProtoFiles(t, extension.textProtoRepo, debuggable.get(), extension, buildDir);
 
-                if (configFile.exists()) {
-                    Map<String, String> properties = parseAConfig(configFile);
-                    Map<String, String> resolvedProperties = resolveTextProtoValues(properties, textProtoFiles, extension, t);
-                    generateJavaFile(resolvedProperties, extension);
-                    t.getLogger().lifecycle("Generated Flags.java with properties from " + extension.aconfigFile + " and textproto files");
+                if (!properties.isEmpty()) {
+                    List<Flag> resolvedProperties = resolveTextProtoValues(properties, textProtoFiles, extension, t);
+                    generateJavaFile(resolvedProperties, extension, buildDir);
+                    t.getLogger().lifecycle("Generated Flags.java with properties from " + extension.aconfigFiles + " and textproto files");
                 } else {
-                    throw new RuntimeException("No aconfig file found at " + extension.aconfigFile);
+                    throw new RuntimeException("No aconfig files found at " + extension.aconfigFiles);
                 }
             });
         });
@@ -103,10 +111,13 @@ public class GradleAconfigPlugin implements Plugin<Project> {
                     }
                 } else {
                     project.getLogger().lifecycle("java projects do not have build types");
+                    if (!Arrays.toString(project.getTasks().toArray()).contains("compileJava")) {
+                        project.getLogger().lifecycle("the generateFlags task may have also been ran manually");
+                    }
                 }
             }
             case task_ran_manually_with_AGP ->
-                    project.getLogger().lifecycle("the generateFlags task may have been ran manually when this is an AGP application project");
+                    project.getLogger().lifecycle("the generateFlags task may have been ran manually");
             default -> throw new IllegalArgumentException("unexpected error code!");
         }
         // get from command line flags
@@ -145,9 +156,9 @@ public class GradleAconfigPlugin implements Plugin<Project> {
                         if ((line.contains("name: ") || line.contains("package: ") || line.contains("permission: ") || line.contains("state: ")) && !line.startsWith("#")) {
                             String[] parts = line.split(": ", 2);
                             if (!Objects.equals(properties.get(parts[0].trim()), parts[1].trim().replace("\"", "")) && parts[0].trim().equals("package")) {
-                                throw new RuntimeException("package name in " + file.getName() + " does not match the package name in " + extension.aconfigFile);
+                                throw new RuntimeException("package name in " + file.getName() + " does not match the package name in one of the following files " + extension.aconfigFiles);
                             } else if (!Objects.equals(properties.get(parts[0].trim()), extension.flagsPackage) && parts[0].trim().equals("package")) {
-                                throw new RuntimeException("package name in the config does not match the package name in " + extension.aconfigFile);
+                                throw new RuntimeException("package name in the config does not match the package name in one of the following files " + extension.aconfigFiles);
                             } else if (!Objects.equals(parts[1].trim().replace("\"", ""), extension.flagsPackage) && parts[0].trim().equals("package")) {
                                 throw new RuntimeException("package name in the config does not match the package name in " + file.getName());
                             }
