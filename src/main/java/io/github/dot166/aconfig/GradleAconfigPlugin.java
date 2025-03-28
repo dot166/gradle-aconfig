@@ -5,10 +5,12 @@ import org.gradle.api.Project;
 import org.gradle.api.Task;
 import org.eclipse.jgit.api.Git;
 import org.gradle.api.plugins.JavaPluginExtension;
+import org.gradle.api.tasks.TaskProvider;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -41,6 +43,11 @@ public class GradleAconfigPlugin implements Plugin<Project> {
         File projectDir = project.getProjectDir();
         File buildDir = project.getBuildDir();
         aconfigOutputDir = new File(buildDir, "generated/source/aconfig/");
+        try {
+            createLibaconfig(project);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
 
         project.getTasks().register("generateFlags", task -> {
             task.doLast(t -> {
@@ -145,7 +152,7 @@ public class GradleAconfigPlugin implements Plugin<Project> {
         }
     }
 
-    private Map<String, String> resolveTextProtoValues(Map<String, String> properties, List<File> textProtoFiles, AConfigExtension extension, Task project) {
+    private List<Flag> resolveTextProtoValues(Map<String, String> properties, List<File> textProtoFiles, AConfigExtension extension, Task project) {
         Map<String, String> textProtoValues = new HashMap<>();
         for (File file : textProtoFiles) {
             String name = null;
@@ -189,10 +196,10 @@ public class GradleAconfigPlugin implements Plugin<Project> {
             }
         }
 
-        Map<String, String> resolvedProperties = new HashMap<>();
+        List<Flag> resolvedProperties = new ArrayList<>();
         for (Map.Entry<String, String> entry : properties.entrySet()) {
             if (!Objects.equals(entry.getKey(), "package")) {
-                resolvedProperties.put(entry.getValue(), parse_aconfig_state(textProtoValues.getOrDefault(entry.getValue(), String.valueOf(false))));
+                resolvedProperties.add(new Flag(entry.getValue(), parse_aconfig_state(textProtoValues.getOrDefault(entry.getValue(), String.valueOf(false))), true));
             }
         }
         return resolvedProperties;
@@ -258,23 +265,63 @@ public class GradleAconfigPlugin implements Plugin<Project> {
         return listFiles;
     }
 
-    private void generateJavaFile(Map<String, String> properties, AConfigExtension extension) {
+    private void generateJavaFile(List<Flag> properties, AConfigExtension extension, File buildDir) {
+        File libaconfigDir = new File(buildDir, "libaconfig/src/main/io/github/dot166/libaconfig");
         File outputDir = new File(aconfigOutputDir, extension.flagsPackage.replace(".", "/"));
         outputDir.mkdirs();
         File outputFile = new File(outputDir, "Flags.java");
 
         StringBuilder classContent = new StringBuilder();
         classContent.append("package ").append(extension.flagsPackage).append(";\n\n");
+        classContent.append("import io.github.dot166.libaconfig.writableFlag;\n\n");
         classContent.append("public class Flags {\n");
-        for (Map.Entry<String, String> entry : properties.entrySet()) {
-            classContent.append("    public static boolean ").append(snakeToCamel(entry.getKey())).append("() {\n        return ").append(entry.getValue()).append(";\n    }\n");
+        for (int i = 0; i < properties.size(); i++) {
+            Flag entry = properties.get(i);
+            StringBuilder method = new StringBuilder();
+            method.append("    public static boolean ").append(snakeToCamel(entry.getKey())).append("() {\n        return ");
+            if (!entry.isWritable()) {
+                method.append(entry.getValue());
+            } else {
+                method.append("(new writableFlag(\"").append(entry.getKey()).append("\", ").append(entry.getValue()).append(")).getFlagValue()");
+            }
+            method.append(";\n    }\n");
+            classContent.append(method.toString());
         }
         classContent.append("}\n");
 
         try {
             Files.write(outputFile.toPath(), classContent.toString().getBytes());
         } catch (IOException e) {
-            throw new RuntimeException("Error writing Java file", e);
+            throw new RuntimeException("Error writing Flags Java file", e);
+        }
+        libaconfigDir.mkdirs(); // temp
+        File libaconfigOutputFile = new File(libaconfigDir, "Keys.java");
+
+        StringBuilder libaconfigClassContent = new StringBuilder();
+        libaconfigClassContent.append("package io.github.dot166.libaconfig;\n\n");
+        libaconfigClassContent.append("public class Keys {\n");
+        libaconfigClassContent.append("    public static String[] keys = {");
+        StringBuilder method = new StringBuilder();
+        boolean writableFlagExists = false;
+        for (int i = 0; i < properties.size(); i++) {
+            Flag entry = properties.get(i);
+            if (!entry.isWritable()) {
+                continue;
+            }
+            method.append("\"").append(entry.getKey()).append("\", ");
+            writableFlagExists = true;
+        }
+        method.append("}\n");
+        if (writableFlagExists) {
+            method.replace(method.indexOf(", }"), method.indexOf(", }") + 3, "}");
+        }
+        libaconfigClassContent.append(method.toString());
+        libaconfigClassContent.append("}\n");
+
+        try {
+            Files.write(libaconfigOutputFile.toPath(), libaconfigClassContent.toString().getBytes());
+        } catch (IOException e) {
+            throw new RuntimeException("Error writing Keys Java file", e);
         }
     }
 
@@ -319,63 +366,27 @@ public class GradleAconfigPlugin implements Plugin<Project> {
         return directoryToBeDeleted.delete();
     }
     
-    private void createLibaconfig(Project project) {
+    private void createLibaconfig(Project project) throws Exception {
         String libaconfigName = "libaconfig";
         File libaconfigDir = new File(project.getBuildDir(), libaconfigName);
 
         // Ensure the subproject directory exists
-        if (!libaconfigDir.exists()) {
-            libaconfigDir.mkdirs();
-        }
-
-        // Create a build.gradle file dynamically
-        File buildFile = new File(libaconfigDir, "build.gradle.kts");
-        if (!buildFile.exists()) {
-            try (FileWriter writer = new FileWriter(buildFile)) {
-                writer.write("""
-                    plugins {
-                        java
-                    }
-
-                    dependencies {
-                        implementation("org.apache.commons:commons-lang3:3.12.0")
-                    }
-
-                    tasks.register("generateSources") {
-                        val outputDir = layout.buildDirectory.dir("generated-src").get().asFile
-                        doLast {
-                            outputDir.mkdirs()
-                            val generatedFile = File(outputDir, "generated/GeneratedClass.java")
-                            generatedFile.parentFile.mkdirs()
-                            generatedFile.writeText(\"""
-                                package generated;
-
-                                public class GeneratedClass {
-                                    public static String message() {
-                                        return "Hello from dynamically created subproject!";
-                                    }
-                                }
-                                \""".trimIndent())
-                        }
-                    }
-
-                    sourceSets.main {
-                        java.srcDir(layout.buildDirectory.dir("generated-src"))
-                    }
-
-                    tasks.named("compileJava") {
-                        dependsOn("generateSources")
-                    }
-                """);
-            } catch (IOException e) {
-                throw new RuntimeException("Failed to create subproject build file", e);
-            }
+        deleteDirectory(libaconfigDir);//libaconfigDir.delete();
+        String dir = project.getPlugins().hasPlugin("com.android.base") ? "android" : "java";
+        String command =
+                "curl https://codeload.github.com/dot166/gradle-aconfig/tar.gz/main | tar -xz --strip=2 gradle-aconfig-main/libaconfig/" + dir;
+        ProcessBuilder processBuilder = new ProcessBuilder(command.split(" "));
+        processBuilder.directory(libaconfigDir);
+        Process process = processBuilder.start();
+        process.waitFor();
+        if (process.exitValue() != GradleAconfigPlugin.errorCodes.Everything_is_Fine.ordinal()) {
+            throw new RuntimeException(toString_ReadAllBytes(process.getErrorStream()));
         }
 
         // Register the subproject dynamically
         project.getGradle().allprojects(proj -> {
             if (proj.getProjectDir().equals(libaconfigDir)) {
-                configureSubproject(proj);
+                configureSubproject(proj, project);
             }
         });
 
@@ -383,20 +394,39 @@ public class GradleAconfigPlugin implements Plugin<Project> {
         project.getGradle().projectsLoaded(gradle -> {
             if (project.findProject(libaconfigName) == null) {
                 Project libaconfig = project.getRootProject().project(":build:" + libaconfigName);
-                configureSubproject(libaconfig);
+                configureSubproject(libaconfig, project);
 
-                project.getDependencies().add("implementation", libaconfig);
+                String impl = project.getPlugins().hasPlugin("com.android.library") ? "api" : "implementation";
+                project.getDependencies().add(impl, libaconfig);
             }
         });
     }
 
-    private void configureSubproject(Project subproject) {
-        subproject.getPlugins().apply("java");
+    private void configureSubproject(Project subproject, Project project) {
+        String projName;
+
+        if (project.getRootProject() == project) {
+            projName = "";
+        } else {
+            projName = ":" + project.getName();
+        }
 
         // Ensure the sources are generated before compilation
-        subproject.getTasks().named("compileJava").configure(task -> {
-            task.dependsOn("generateSources");
-        });
+        if (project.getPlugins().hasPlugin("com.android.base")) {
+            subproject.getTasks().named("preBuild").configure(task -> {
+                task.dependsOn(projName + ":generateFlags");
+            });
+        } else {
+            subproject.getTasks().named("compileJava").configure(task -> {
+                task.dependsOn(projName + ":generateFlags");
+            });
+        }
+    }
+    public String toString_ReadAllBytes(InputStream stream) throws Exception {
+
+        byte[] stringBytes = stream.readAllBytes(); // read all bytes into a byte array
+
+        return new String(stringBytes);// decodes stringBytes into a String
     }
 
 }
