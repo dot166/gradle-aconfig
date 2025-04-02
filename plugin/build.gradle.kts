@@ -62,7 +62,7 @@ dependencies {
     implementation("commons-io:commons-io:2.18.0")
     implementation("com.google.code.gson:gson:2.10.1")
     // Use JUnit Jupiter for testing.
-    testImplementation("org.junit.jupiter:junit-jupiter:5.11.3")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.12.1")
 
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
