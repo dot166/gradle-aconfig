@@ -54,6 +54,9 @@ class GradleAconfigPluginTest {
                 android {
                     namespace = "io.github.dot166.aconfig.test"
                     compileSdk = 35
+                    defaultConfig {
+                        minSdk = 26
+                    }
                 }
                 
                 aconfig {

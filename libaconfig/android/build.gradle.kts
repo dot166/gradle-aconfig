@@ -5,6 +5,9 @@ plugins {
 android {
     namespace = "io.github.dot166.libaconfig"
     compileSdk = 35
+    defaultConfig {
+        minSdk = 26
+    }
 }
 
 dependencies {
