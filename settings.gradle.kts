@@ -22,3 +22,7 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
+
+include(":libaconfig:android")
+include(":libaconfig:java")
+include(":plugin")

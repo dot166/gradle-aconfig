@@ -26,6 +26,9 @@ class GradleAconfigPluginTest {
         Files.createDirectories(projectDir.toPath());
         File manifestDir = new File(projectDir.getAbsolutePath() + "/src/main");
         Files.createDirectories(manifestDir.toPath());
+        writeString(new File(projectDir, "gradle.properties"), """
+                android.useAndroidX=true
+                """);
         writeString(new File(projectDir, "settings.gradle.kts"), """
                 pluginManagement {
                     repositories {
@@ -91,6 +94,9 @@ class GradleAconfigPluginTest {
         File projectDir = new File("build/test/agp/library");
         deleteDirectory(projectDir);
         Files.createDirectories(projectDir.toPath());
+        writeString(new File(projectDir, "gradle.properties"), """
+                android.useAndroidX=true
+                """);
         writeString(new File(projectDir, "settings.gradle.kts"), """
                 pluginManagement {
                     repositories {
@@ -101,12 +107,12 @@ class GradleAconfigPluginTest {
                     }
                 }
                 
-                 dependencyResolutionManagement {
-                     repositories {
-                         google()
-                         mavenCentral()
-                     }
-                 }""");
+                dependencyResolutionManagement {
+                    repositories {
+                        google()
+                        mavenCentral()
+                    }
+                }""");
         writeString(new File(projectDir, "build.gradle.kts"), """
                 plugins {
                     id("com.android.library")

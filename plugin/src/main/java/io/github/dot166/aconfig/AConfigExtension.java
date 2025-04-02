@@ -54,4 +54,12 @@ public class AConfigExtension {
      * should be the same here, in the aconfig file and in the textproto file
      */
     public String flagsPackage = null;
+    /**
+     * your github personal access token
+     * <p>
+     * used to get around the 60 requests per hour limit on the github api
+     * <p>
+     * not required but can be necessary
+     */
+    public String githubToken = null;
 }

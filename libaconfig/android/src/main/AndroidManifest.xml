@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <application android:name=".FlagApplication">
+    <application>
         <activity android:name=".FlagConfigActivity"
+            android:icon="@mipmap/ic_launcher_j"
             android:exported="true"/>
 
     </application>

@@ -1,17 +1,29 @@
 package io.github.dot166.aconfig;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
+import org.apache.commons.io.FileUtils;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.Task;
 import org.eclipse.jgit.api.Git;
 import org.gradle.api.plugins.JavaPluginExtension;
-import org.gradle.api.tasks.TaskProvider;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -26,6 +38,7 @@ import com.android.build.api.dsl.ApplicationExtension;
 import com.android.build.gradle.BaseExtension;
 
 public class GradleAconfigPlugin implements Plugin<Project> {
+    private static final String GITHUB_API_URL = "https://api.github.com/repos/dot166/gradle-aconfig/contents/{folder}?ref=main";
     public enum errorCodes {
         Everything_is_Fine,
         Catastrophic_Failure,
@@ -44,7 +57,7 @@ public class GradleAconfigPlugin implements Plugin<Project> {
         File buildDir = project.getBuildDir();
         aconfigOutputDir = new File(buildDir, "generated/source/aconfig/");
         try {
-            createLibaconfig(project);
+            createLibaconfig(project, extension);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -266,7 +279,7 @@ public class GradleAconfigPlugin implements Plugin<Project> {
     }
 
     private void generateJavaFile(List<Flag> properties, AConfigExtension extension, File buildDir) {
-        File libaconfigDir = new File(buildDir, "libaconfig/src/main/io/github/dot166/libaconfig");
+        File libaconfigDir = new File(buildDir, "libaconfig/java/io/github/dot166/libaconfig");
         File outputDir = new File(aconfigOutputDir, extension.flagsPackage.replace(".", "/"));
         outputDir.mkdirs();
         File outputFile = new File(outputDir, "Flags.java");
@@ -294,7 +307,6 @@ public class GradleAconfigPlugin implements Plugin<Project> {
         } catch (IOException e) {
             throw new RuntimeException("Error writing Flags Java file", e);
         }
-        libaconfigDir.mkdirs(); // temp
         File libaconfigOutputFile = new File(libaconfigDir, "Keys.java");
 
         StringBuilder libaconfigClassContent = new StringBuilder();
@@ -311,7 +323,7 @@ public class GradleAconfigPlugin implements Plugin<Project> {
             method.append("\"").append(entry.getKey()).append("\", ");
             writableFlagExists = true;
         }
-        method.append("}\n");
+        method.append("};\n");
         if (writableFlagExists) {
             method.replace(method.indexOf(", }"), method.indexOf(", }") + 3, "}");
         }
@@ -366,67 +378,135 @@ public class GradleAconfigPlugin implements Plugin<Project> {
         return directoryToBeDeleted.delete();
     }
     
-    private void createLibaconfig(Project project) throws Exception {
+    private void createLibaconfig(Project project, AConfigExtension extension) {
         String libaconfigName = "libaconfig";
         File libaconfigDir = new File(project.getBuildDir(), libaconfigName);
 
         // Ensure the subproject directory exists
         deleteDirectory(libaconfigDir);//libaconfigDir.delete();
-        String dir = project.getPlugins().hasPlugin("com.android.base") ? "android" : "java";
-        String command =
-                "curl https://codeload.github.com/dot166/gradle-aconfig/tar.gz/main | tar -xz --strip=2 gradle-aconfig-main/libaconfig/" + dir;
-        ProcessBuilder processBuilder = new ProcessBuilder(command.split(" "));
-        processBuilder.directory(libaconfigDir);
-        Process process = processBuilder.start();
-        process.waitFor();
-        if (process.exitValue() != GradleAconfigPlugin.errorCodes.Everything_is_Fine.ordinal()) {
-            throw new RuntimeException(toString_ReadAllBytes(process.getErrorStream()));
-        }
+        libaconfigDir.mkdirs();
+        downloadLibaconfig(project, extension);
 
-        // Register the subproject dynamically
-        project.getGradle().allprojects(proj -> {
-            if (proj.getProjectDir().equals(libaconfigDir)) {
-                configureSubproject(proj, project);
-            }
-        });
-
-        // Ensure the subproject is available
-        project.getGradle().projectsLoaded(gradle -> {
-            if (project.findProject(libaconfigName) == null) {
-                Project libaconfig = project.getRootProject().project(":build:" + libaconfigName);
-                configureSubproject(libaconfig, project);
-
-                String impl = project.getPlugins().hasPlugin("com.android.library") ? "api" : "implementation";
-                project.getDependencies().add(impl, libaconfig);
-            }
-        });
-    }
-
-    private void configureSubproject(Project subproject, Project project) {
-        String projName;
-
-        if (project.getRootProject() == project) {
-            projName = "";
-        } else {
-            projName = ":" + project.getName();
-        }
-
-        // Ensure the sources are generated before compilation
+        // manually recreate libaconfig build files and merge them with the project
+        // this is done because for some stupid reason libaconfig cannot be added as a submodule dynamically
         if (project.getPlugins().hasPlugin("com.android.base")) {
-            subproject.getTasks().named("preBuild").configure(task -> {
-                task.dependsOn(projName + ":generateFlags");
+            // Configure AGP source sets to include generated sources
+            project.getExtensions().configure(BaseExtension.class, android -> {
+                android.getSourceSets().getByName("main").getJava().srcDir(new File(libaconfigDir, "java"));
+                android.getSourceSets().getByName("main").getRes().srcDir(new File(libaconfigDir, "res"));
+                android.getSourceSets().getByName("main").getManifest().srcFile(new File(libaconfigDir, "AndroidManifest.xml"));
             });
-        } else {
-            subproject.getTasks().named("compileJava").configure(task -> {
-                task.dependsOn(projName + ":generateFlags");
-            });
+            if (!project.getRootProject().getName().equals("j-Lib")) { // libaconfig for android relies on jLib for preference menu things, prevent jLib from importing itself, do not want to know what would happen if it did import itself
+                project.getDependencies().add("implementation", "io.github.dot166:j-Lib:+");
+            }
+        } else if (project.getPlugins().hasPlugin("org.gradle.java")) {
+            project.getExtensions().getByType(JavaPluginExtension.class)
+                    .getSourceSets().getByName("main")
+                    .getJava().srcDir(new File(libaconfigDir, "java"));
+            project.getExtensions().getByType(JavaPluginExtension.class)
+                    .getSourceSets().getByName("main")
+                    .getResources().srcDir(new File(libaconfigDir, "resources"));
         }
     }
-    public String toString_ReadAllBytes(InputStream stream) throws Exception {
 
-        byte[] stringBytes = stream.readAllBytes(); // read all bytes into a byte array
+    private void downloadLibaconfig(Project project, AConfigExtension extension) {
+        String dir = project.getPlugins().hasPlugin("com.android.base") ? "android" : "java";
 
-        return new String(stringBytes);// decodes stringBytes into a String
+        String folder = "libaconfig/" + dir + "/src/main"; // Path inside repo
+        String apiUrl = GITHUB_API_URL.replace("{folder}", folder);
+
+        try {
+            project.getLogger().lifecycle("Downloading libaconfig from GitHub.");
+            downloadGitHubFolder(apiUrl, project.getBuildDir().getAbsolutePath() + "/libaconfig", dir, project, extension);
+            project.getLogger().lifecycle("libaconfig downloaded successfully.");
+        } catch (Exception e) {
+            project.getLogger().lifecycle(e.toString());
+            project.getLogger().lifecycle(Arrays.toString(e.getStackTrace()));
+            throw new RuntimeException("Failed to download libaconfig", e);
+        }
+    }
+
+    private void downloadGitHubFolder(String apiUrl, String destination, String buildtypedir, Project project, AConfigExtension extension) throws IOException {
+        HttpURLConnection connection = (HttpURLConnection) new URL(apiUrl).openConnection();
+        connection.setRequestProperty("Accept", "application/vnd.github.v3+json");
+        if (extension.githubToken != null) {
+            connection.setRequestProperty("Authorization", "token " + extension.githubToken);
+        } else {
+            project.getLogger().warn("Warning! GitHub token is not set, the standard 60 requests per hour limit on the GitHub api v3 will apply");
+        }
+        int responseCode = connection.getResponseCode();
+        if (responseCode != 200) {
+            throw new IOException("GitHub API request failed. Response Code: " + responseCode);
+        }
+
+        try (InputStreamReader reader = new InputStreamReader(connection.getInputStream());
+             BufferedReader br = new BufferedReader(reader)) {
+
+            // ✅ Log API response for debugging
+            StringBuilder responseBuilder = new StringBuilder();
+            String line;
+            while ((line = br.readLine()) != null) {
+                responseBuilder.append(line);
+            }
+            String jsonResponse = responseBuilder.toString();
+            project.getLogger().lifecycle("📜 API Response: " + jsonResponse);
+
+            JsonArray files = JsonParser.parseString(jsonResponse).getAsJsonArray();
+
+            for (JsonElement element : files) {
+                JsonObject fileObj = element.getAsJsonObject();
+                String type = fileObj.get("type").getAsString();
+                String path = fileObj.get("path").getAsString();
+                String downloadUrl = existsAndNotNull(fileObj) ? fileObj.get("download_url").getAsString() : null;
+
+                String filePath = destination + path.replace("libaconfig/" + buildtypedir + "/src/main/", "/");
+                if ("file".equals(type) && downloadUrl != null) {
+                    project.getLogger().lifecycle("Downloading file: " + path);
+                    downloadFile(downloadUrl, filePath, project);
+                } else if ("dir".equals(type)) {
+                    FileUtils.forceMkdir(new File(filePath));
+                    String subfolderApiUrl = GITHUB_API_URL.replace("{folder}", path);
+                    downloadGitHubFolder(subfolderApiUrl, destination, buildtypedir, project, extension);
+                }
+            }
+        }
+    }
+
+    private void downloadFile(String fileUrl, String destination, Project project) throws IOException {
+        try {
+            URL url = new URL(fileUrl);
+            FileUtils.forceMkdirParent(new File(destination));
+
+            try (InputStream in = url.openStream();
+                 FileOutputStream out = new FileOutputStream(destination)) {
+                byte[] buffer = new byte[1024];
+                int bytesRead;
+                while ((bytesRead = in.read(buffer)) != -1) {
+                    out.write(buffer, 0, bytesRead);
+                }
+            }
+
+            // Debug: Write a test file in the same directory
+            Path filePath = Paths.get(destination).toAbsolutePath();
+            File debugFile = new File(filePath.getParent().toString(), "debug-test.txt");
+            try (FileWriter writer = new FileWriter(debugFile)) {
+                writer.write("Test file written at: " + debugFile.getAbsolutePath());
+            }
+            project.getLogger().lifecycle("✅ Saved: " + destination);
+        } catch (Exception e) {
+            project.getLogger().error("❌ Error downloading file: " + fileUrl, e);
+        }
+    }
+
+    private boolean existsAndNotNull(JsonObject fileObj) {
+        if (fileObj.has("download_url")) {
+            // null check
+            // do this instead of using the isJsonNull() method because for some reason it returns false when it is a null object (when the object is JsonNull) (see https://api.github.com/repos/dot166/gradle-aconfig/contents/libaconfig/android?ref=main for what i mean), google fix this
+            return !"dir".equals(fileObj.get("type").getAsString());
+            //return !fileObj.isJsonNull(); // old null check
+        } else {
+            return false;
+        }
     }
 
 }

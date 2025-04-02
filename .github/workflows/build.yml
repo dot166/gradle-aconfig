@@ -41,10 +41,10 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build
-        run: ./gradlew build
+        run: ./gradlew :plugin:build && ./gradlew :libaconfig:android:assembleDebug && ./gradlew :libaconfig:java:build
 
       - name: Test Plugin
-        run: ./gradlew test
+        run: ./gradlew :plugin:test
 
       - name: Publish to Maven Central
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'dot166/gradle-aconfig' && env.RELEASE == '1' }}
