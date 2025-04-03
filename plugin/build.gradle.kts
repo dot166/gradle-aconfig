@@ -60,9 +60,9 @@ dependencies {
     implementation(gradleKotlinDsl())
     implementation("org.eclipse.jgit:org.eclipse.jgit:7.2.0.202503040940-r")
     implementation("commons-io:commons-io:2.18.0")
-    implementation("com.google.code.gson:gson:2.10.1")
+    implementation("com.google.code.gson:gson:2.12.1")
     // Use JUnit Jupiter for testing.
-    testImplementation("org.junit.jupiter:junit-jupiter:5.11.3")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.12.1")
 
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
