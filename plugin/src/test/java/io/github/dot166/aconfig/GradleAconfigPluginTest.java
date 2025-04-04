@@ -28,7 +28,7 @@ class GradleAconfigPluginTest {
         Files.createDirectories(manifestDir.toPath());
         writeString(new File(projectDir, "gradle.properties"), """
                 android.useAndroidX=true
-                org.gradle.jvmargs=-Xmx4096m -Dfile.encoding=UTF-8
+                org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
                 """);
         writeString(new File(projectDir, "settings.gradle.kts"), """
                 pluginManagement {
@@ -100,7 +100,7 @@ class GradleAconfigPluginTest {
         Files.createDirectories(projectDir.toPath());
         writeString(new File(projectDir, "gradle.properties"), """
                 android.useAndroidX=true
-                org.gradle.jvmargs=-Xmx4096m -Dfile.encoding=UTF-8
+                org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
                 """);
         writeString(new File(projectDir, "settings.gradle.kts"), """
                 pluginManagement {
@@ -160,7 +160,7 @@ class GradleAconfigPluginTest {
         deleteDirectory(projectDir);
         Files.createDirectories(projectDir.toPath());
         writeString(new File(projectDir, "gradle.properties"), """
-                org.gradle.jvmargs=-Xmx4096m -Dfile.encoding=UTF-8
+                org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
                 """);
         writeString(new File(projectDir, "settings.gradle.kts"), "");
         writeString(new File(projectDir, "build.gradle.kts"), """
