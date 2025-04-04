@@ -159,6 +159,10 @@ class GradleAconfigPluginTest {
         File projectDir = new File("build/test/java");
         deleteDirectory(projectDir);
         Files.createDirectories(projectDir.toPath());
+        writeString(new File(projectDir, "gradle.properties"), """
+                android.useAndroidX=true
+                org.gradle.jvmargs=-Xmx4096m -Dfile.encoding=UTF-8
+                """);
         writeString(new File(projectDir, "settings.gradle.kts"), "");
         writeString(new File(projectDir, "build.gradle.kts"), """
                 plugins {
