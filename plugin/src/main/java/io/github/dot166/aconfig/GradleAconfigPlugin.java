@@ -15,15 +15,12 @@ import org.gradle.api.plugins.JavaPluginExtension;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -167,6 +164,7 @@ public class GradleAconfigPlugin implements Plugin<Project> {
 
     private List<Flag> resolveTextProtoValues(Map<String, String> properties, List<File> textProtoFiles, AConfigExtension extension, Task project) {
         Map<String, String> textProtoValues = new HashMap<>();
+        Map<String, Boolean> writable = new HashMap<>();
         for (File file : textProtoFiles) {
             String name = null;
             if (file.exists()) {
@@ -193,9 +191,9 @@ public class GradleAconfigPlugin implements Plugin<Project> {
                                 }
                                 case "permission" -> {
                                     if (parts[1].trim().equals("READ_ONLY")) {
-                                        //do nothing, valid supported value
+                                        writable.put(name, false);
                                     } else if (parts[1].trim().equals("READ_WRITE")) {
-                                        project.getLogger().warn("flag {} is a read/write flag, read/write flags are currently not supported, will be treated as a read only flag", name);
+                                        writable.put(name, true);
                                     } else {
                                         throw new RuntimeException("invalid permission value for " + name);
                                     }
@@ -212,7 +210,7 @@ public class GradleAconfigPlugin implements Plugin<Project> {
         List<Flag> resolvedProperties = new ArrayList<>();
         for (Map.Entry<String, String> entry : properties.entrySet()) {
             if (!Objects.equals(entry.getKey(), "package")) {
-                resolvedProperties.add(new Flag(entry.getValue(), parse_aconfig_state(textProtoValues.getOrDefault(entry.getValue(), String.valueOf(false))), true));
+                resolvedProperties.add(new Flag(entry.getValue(), parse_aconfig_state(textProtoValues.getOrDefault(entry.getValue(), String.valueOf(false))), writable.get(entry.getValue())));
             }
         }
         return resolvedProperties;
@@ -417,6 +415,9 @@ public class GradleAconfigPlugin implements Plugin<Project> {
 
         try {
             project.getLogger().lifecycle("Downloading libaconfig from GitHub.");
+            if (extension.githubToken == null) {
+                project.getLogger().warn("Warning! GitHub token is not set, the standard 60 requests per hour limit on the GitHub api v3 will apply");
+            }
             downloadGitHubFolder(apiUrl, project.getBuildDir().getAbsolutePath() + "/libaconfig", dir, project, extension);
             project.getLogger().lifecycle("libaconfig downloaded successfully.");
         } catch (Exception e) {
@@ -431,8 +432,6 @@ public class GradleAconfigPlugin implements Plugin<Project> {
         connection.setRequestProperty("Accept", "application/vnd.github.v3+json");
         if (extension.githubToken != null) {
             connection.setRequestProperty("Authorization", "token " + extension.githubToken);
-        } else {
-            project.getLogger().warn("Warning! GitHub token is not set, the standard 60 requests per hour limit on the GitHub api v3 will apply");
         }
         int responseCode = connection.getResponseCode();
         if (responseCode != 200) {
@@ -449,7 +448,7 @@ public class GradleAconfigPlugin implements Plugin<Project> {
                 responseBuilder.append(line);
             }
             String jsonResponse = responseBuilder.toString();
-            project.getLogger().lifecycle("📜 API Response: " + jsonResponse);
+            project.getLogger().debug("📜 API Response: " + jsonResponse);
 
             JsonArray files = JsonParser.parseString(jsonResponse).getAsJsonArray();
 
@@ -461,7 +460,7 @@ public class GradleAconfigPlugin implements Plugin<Project> {
 
                 String filePath = destination + path.replace("libaconfig/" + buildtypedir + "/src/main/", "/");
                 if ("file".equals(type) && downloadUrl != null) {
-                    project.getLogger().lifecycle("Downloading file: " + path);
+                    project.getLogger().debug("Downloading file: " + path);
                     downloadFile(downloadUrl, filePath, project);
                 } else if ("dir".equals(type)) {
                     FileUtils.forceMkdir(new File(filePath));
@@ -485,14 +484,7 @@ public class GradleAconfigPlugin implements Plugin<Project> {
                     out.write(buffer, 0, bytesRead);
                 }
             }
-
-            // Debug: Write a test file in the same directory
-            Path filePath = Paths.get(destination).toAbsolutePath();
-            File debugFile = new File(filePath.getParent().toString(), "debug-test.txt");
-            try (FileWriter writer = new FileWriter(debugFile)) {
-                writer.write("Test file written at: " + debugFile.getAbsolutePath());
-            }
-            project.getLogger().lifecycle("✅ Saved: " + destination);
+            project.getLogger().debug("Saved: " + destination);
         } catch (Exception e) {
             project.getLogger().error("❌ Error downloading file: " + fileUrl, e);
         }

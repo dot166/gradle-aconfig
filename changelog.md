@@ -1,5 +1,4 @@
-# v1.0.5
+# v1.0.6
 
- - fully implement libaconfig (see the readme in the libaconfig folder for more info on that)
- - allow multiple aconfig files to be selected (separated by ';')
- - more bugfixes
+ - hide unessesary debug logging that was in 1.0.5 by actually marking it as debug
+ - fix all flags being marked as writable
