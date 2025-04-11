@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <application>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
         <activity android:name=".FlagConfigActivity"
             android:icon="@mipmap/ic_launcher_j"
-            android:exported="true"/>
+            android:exported="true"
+            tools:ignore="WrongManifestParent" />
 
-    </application>
 </manifest>
