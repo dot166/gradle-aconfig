@@ -1,12 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
-    <uses-sdk android:minSdkVersion="26"
-        tools:ignore="GradleOverrides" />
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application>
-        <activity android:name=".FlagConfigActivity"
+        <activity android:name="io.github.dot166.libaconfig.FlagConfigActivity"
             android:icon="@mipmap/ic_launcher_j"
-            android:exported="true"/>
+            android:exported="true" />
 
     </application>
 </manifest>
