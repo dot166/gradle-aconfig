@@ -1,4 +1,3 @@
-# v1.0.6
+# v1.0.7
 
- - hide unessesary debug logging that was in 1.0.5 by actually marking it as debug
- - fix all flags being marked as writable
+ - fix libaconfig manifest overriding the application/libraries manifest.

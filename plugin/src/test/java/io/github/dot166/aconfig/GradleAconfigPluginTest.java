@@ -71,7 +71,8 @@ class GradleAconfigPluginTest {
                 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
                     xmlns:tools="http://schemas.android.com/tools">
                 
-                    <application/>
+                    <application>
+                    </application>
                 
                 </manifest>""");
 
@@ -127,6 +128,9 @@ class GradleAconfigPluginTest {
                 android {
                     namespace = "io.github.dot166.aconfig.test"
                     compileSdk = 35
+                    defaultConfig {
+                        minSdk = 26
+                    }
                 }
                 
                 aconfig {

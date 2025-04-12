@@ -11,6 +11,7 @@ import org.gradle.api.Project;
 import org.gradle.api.Task;
 import org.eclipse.jgit.api.Git;
 import org.gradle.api.plugins.JavaPluginExtension;
+import org.gradle.api.tasks.TaskProvider;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -20,7 +21,11 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -33,6 +38,8 @@ import java.util.stream.Collectors;
 
 import com.android.build.api.dsl.ApplicationExtension;
 import com.android.build.gradle.BaseExtension;
+import com.android.build.api.variant.AndroidComponentsExtension;
+import com.android.build.api.artifact.SingleArtifact;
 
 public class GradleAconfigPlugin implements Plugin<Project> {
     private static final String GITHUB_API_URL = "https://api.github.com/repos/dot166/gradle-aconfig/contents/{folder}?ref=main";
@@ -115,6 +122,46 @@ public class GradleAconfigPlugin implements Plugin<Project> {
             } else {
                 debuggable.set(fallbackDevelopmentBuildParser(errorCodes.AGP_Application_not_found, project));
             }
+        });
+
+        project.getPlugins().withId("com.android.application", plugin -> {
+            configurePluginForAppOrLibrary(project);
+        });
+
+        project.getPlugins().withId("com.android.library", plugin -> {
+            configurePluginForAppOrLibrary(project);
+        });
+    }
+
+    private void configurePluginForAppOrLibrary(Project project) {
+        AndroidComponentsExtension<?, ?, ?> androidComponents =
+                project.getExtensions().getByType(AndroidComponentsExtension.class);
+
+        androidComponents.onVariants(androidComponents.selector().all(), variant -> {
+            String taskName = "mergeWithLibaConfigManifest" + variant.getName().toUpperCase();
+
+            TaskProvider<MergeWithLibAConfigManifestTask> mergeTask = project.getTasks().register(
+                    taskName,
+                    MergeWithLibAConfigManifestTask.class,
+                    task -> {
+                        File outputFile = new File(
+                                project.getBuildDir(),
+                                "intermediates/merged_manifests_with_libaconfig/AndroidManifest.xml"
+                        );
+                        task.getOutputManifest().set(outputFile);
+
+                        task.getInputManifest().set(
+                                variant.getArtifacts().get(SingleArtifact.MERGED_MANIFEST.INSTANCE)
+                        );
+                    }
+            );
+
+            variant.getArtifacts().use(mergeTask)
+                    .wiredWithFiles(
+                            MergeWithLibAConfigManifestTask::getInputManifest,
+                            MergeWithLibAConfigManifestTask::getOutputManifest
+                    )
+                    .toTransform(SingleArtifact.MERGED_MANIFEST.INSTANCE);
         });
     }
 
@@ -277,14 +324,16 @@ public class GradleAconfigPlugin implements Plugin<Project> {
     }
 
     private void generateJavaFile(List<Flag> properties, AConfigExtension extension, File buildDir) {
-        File libaconfigDir = new File(buildDir, "libaconfig/java/io/github/dot166/libaconfig");
+        File libaconfigDir = new File(buildDir, "libaconfig/java/" + extension.flagsPackage.replace(".", "/"));
+        File libaconfigSourceDir = new File(buildDir, "libaconfig/java/io/github/dot166/libaconfig");
         File outputDir = new File(aconfigOutputDir, extension.flagsPackage.replace(".", "/"));
         outputDir.mkdirs();
+        libaconfigDir.mkdirs();
         File outputFile = new File(outputDir, "Flags.java");
 
         StringBuilder classContent = new StringBuilder();
         classContent.append("package ").append(extension.flagsPackage).append(";\n\n");
-        classContent.append("import io.github.dot166.libaconfig.writableFlag;\n\n");
+        classContent.append("import ").append(extension.flagsPackage).append(".writableFlag;\n\n");
         classContent.append("public class Flags {\n");
         for (int i = 0; i < properties.size(); i++) {
             Flag entry = properties.get(i);
@@ -308,7 +357,7 @@ public class GradleAconfigPlugin implements Plugin<Project> {
         File libaconfigOutputFile = new File(libaconfigDir, "Keys.java");
 
         StringBuilder libaconfigClassContent = new StringBuilder();
-        libaconfigClassContent.append("package io.github.dot166.libaconfig;\n\n");
+        libaconfigClassContent.append("package ").append(extension.flagsPackage).append(";\n\n");
         libaconfigClassContent.append("public class Keys {\n");
         libaconfigClassContent.append("    public static String[] keys = {");
         StringBuilder method = new StringBuilder();
@@ -332,6 +381,22 @@ public class GradleAconfigPlugin implements Plugin<Project> {
             Files.write(libaconfigOutputFile.toPath(), libaconfigClassContent.toString().getBytes());
         } catch (IOException e) {
             throw new RuntimeException("Error writing Keys Java file", e);
+        }
+
+        try {
+            for (File file : libaconfigSourceDir.listFiles()) {
+                Path path0 = file.toPath();
+                Path path1 = (new File(libaconfigDir, file.getName())).toPath();
+                Charset charset = StandardCharsets.UTF_8;
+
+                String content = new String(Files.readAllBytes(path0), charset);
+                content = content.replaceAll("io.github.dot166.libaconfig", extension.flagsPackage);
+                Files.write(path1, content.getBytes(charset));
+                file.delete();
+            }
+            libaconfigSourceDir.delete();
+        } catch (Exception e) {
+            throw new RuntimeException("error patching libaconfig", e);
         }
     }
 
@@ -392,10 +457,9 @@ public class GradleAconfigPlugin implements Plugin<Project> {
             project.getExtensions().configure(BaseExtension.class, android -> {
                 android.getSourceSets().getByName("main").getJava().srcDir(new File(libaconfigDir, "java"));
                 android.getSourceSets().getByName("main").getRes().srcDir(new File(libaconfigDir, "res"));
-                android.getSourceSets().getByName("main").getManifest().srcFile(new File(libaconfigDir, "AndroidManifest.xml"));
             });
             if (!project.getRootProject().getName().equals("j-Lib")) { // libaconfig for android relies on jLib for preference menu things, prevent jLib from importing itself, do not want to know what would happen if it did import itself
-                project.getDependencies().add("implementation", "io.github.dot166:j-Lib:+");
+                project.getDependencies().add("api", "io.github.dot166:j-Lib:+");
             }
         } else if (project.getPlugins().hasPlugin("org.gradle.java")) {
             project.getExtensions().getByType(JavaPluginExtension.class)
@@ -448,7 +512,7 @@ public class GradleAconfigPlugin implements Plugin<Project> {
                 responseBuilder.append(line);
             }
             String jsonResponse = responseBuilder.toString();
-            project.getLogger().debug("📜 API Response: " + jsonResponse);
+            project.getLogger().debug("API Response: " + jsonResponse);
 
             JsonArray files = JsonParser.parseString(jsonResponse).getAsJsonArray();
 
@@ -486,7 +550,7 @@ public class GradleAconfigPlugin implements Plugin<Project> {
             }
             project.getLogger().debug("Saved: " + destination);
         } catch (Exception e) {
-            project.getLogger().error("❌ Error downloading file: " + fileUrl, e);
+            project.getLogger().error("Error downloading file: " + fileUrl, e);
         }
     }
 
