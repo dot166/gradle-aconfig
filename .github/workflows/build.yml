@@ -41,7 +41,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build
-        run: ./gradlew :plugin:build && cp plugin/build/test/agp/library/build/libaconfig/java/io/github/dot166/libaconfig/Keys.java libaconfig/android/src/main/java/io/github/dot166/libaconfig/Keys.java && ./gradlew :libaconfig:android:assembleDebug && ./gradlew :libaconfig:java:build
+        run: ./gradlew :plugin:build && cp libaconfig/android/ci/Keys.java libaconfig/android/src/main/java/io/github/dot166/libaconfig/Keys.java && ./gradlew :libaconfig:android:assembleDebug && ./gradlew :libaconfig:java:build
 
       - name: Publish to Maven Central
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'dot166/gradle-aconfig' && env.RELEASE == '1' }}
