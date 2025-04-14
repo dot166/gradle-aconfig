@@ -495,7 +495,7 @@ public class GradleAconfigPlugin implements Plugin<Project> {
         HttpURLConnection connection = (HttpURLConnection) new URL(apiUrl).openConnection();
         connection.setRequestProperty("Accept", "application/vnd.github.v3+json");
         if (extension.githubToken != null) {
-            connection.setRequestProperty("Authorization", "token " + extension.githubToken);
+            connection.setRequestProperty("Authorization", "Bearer " + extension.githubToken);
         }
         int responseCode = connection.getResponseCode();
         if (responseCode != 200) {
