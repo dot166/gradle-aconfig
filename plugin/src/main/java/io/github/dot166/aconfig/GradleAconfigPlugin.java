@@ -112,7 +112,7 @@ public class GradleAconfigPlugin implements Plugin<Project> {
                 boolean parsed_successfully_at_least_once = false;
                 for (Task task : graph.getAllTasks()) {
                     if (task.getName().startsWith("assemble") || task.getName().startsWith("bundle")) {
-                        String variantName = task.getName().replace("assemble", "").replace("bundle", "").replace("ClassesToCompileJar", "").replace("ClassesToRuntimeJar", "").replace("LibCompileToJar", "").replace("LibRuntimeToJar", "").replace("LibRuntimeToDir", "").replace("Aar", "").replace("LocalLintAar", "").replace("Resources", "").toLowerCase();
+                        String variantName = task.getName().replace("assemble", "").replace("bundle", "").replace("ClassesToCompileJar", "").replace("ClassesToRuntimeJar", "").replace("LibCompileToJar", "").replace("LibRuntimeToJar", "").replace("LibRuntimeToDir", "").replace("Aar", "").replace("LocalLint", "").replace("Resources", "").toLowerCase();
                         if (androidComponents != null && !variantName.isBlank()) {
                             debuggable.set(androidComponents.getBuildTypes().getByName(variantName).isDebuggable());
                             parsed_successfully_at_least_once = true;
