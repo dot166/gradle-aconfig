@@ -1,3 +1,3 @@
-# v1.0.9
+# v1.0.10
 
- - cache previous version of libaconfig in case of failure
+ - fix bug with caching

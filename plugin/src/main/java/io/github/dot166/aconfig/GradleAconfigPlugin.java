@@ -478,7 +478,6 @@ public class GradleAconfigPlugin implements Plugin<Project> {
         deleteDirectory(libaconfigDir);//libaconfigDir.delete();
         libaconfigDir.mkdirs();
         downloadLibaconfig(project, extension);
-        deleteDirectory(libaconfigCacheDir);//libaconfigCacheDir.delete();
 
         // manually recreate libaconfig build files and merge them with the project
         // this is done because for some stupid reason libaconfig cannot be added as a submodule dynamically
