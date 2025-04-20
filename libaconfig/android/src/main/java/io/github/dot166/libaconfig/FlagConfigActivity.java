@@ -4,13 +4,14 @@ import static io.github.dot166.libaconfig.Keys.keys;
 
 import android.os.Bundle;
 
-import androidx.preference.Preference;
 import androidx.preference.PreferenceScreen;
 import androidx.preference.SwitchPreference;
 
 import java.util.Objects;
 
 import io.github.dot166.jlib.app.jConfigActivity;
+
+import io.github.dot166.libaconfig.R;
 
 
 public class FlagConfigActivity extends jConfigActivity {

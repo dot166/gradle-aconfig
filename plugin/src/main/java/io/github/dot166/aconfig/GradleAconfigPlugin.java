@@ -1,5 +1,7 @@
 package io.github.dot166.aconfig;
 
+import com.android.build.api.dsl.CommonExtension;
+import com.android.build.gradle.AppExtension;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -51,6 +53,7 @@ public class GradleAconfigPlugin implements Plugin<Project> {
     }
 
     public File aconfigOutputDir;
+    public String ns;
     @Override
     public void apply(Project project) {
         AConfigExtension extension = project.getExtensions().create("aconfig", AConfigExtension.class);
@@ -130,6 +133,22 @@ public class GradleAconfigPlugin implements Plugin<Project> {
 
         project.getPlugins().withId("com.android.library", plugin -> {
             configurePluginForAppOrLibrary(project);
+        });
+
+        project.afterEvaluate(proj -> {
+            Object android = project.getExtensions().findByName("android");
+            if (android instanceof CommonExtension) {
+                CommonExtension<?, ?, ?, ?, ?, ?> androidExtension = (CommonExtension<?, ?, ?, ?, ?, ?>) android;
+                String namespace = androidExtension.getNamespace();
+                System.out.println("Namespace: " + namespace);
+                ns = namespace;
+            } else if (android instanceof AppExtension) {
+                // For older AGP: fallback to defaultConfig.getApplicationId()
+                AppExtension appExt = (AppExtension) android;
+                String appId = appExt.getDefaultConfig().getApplicationId();
+                System.out.println("Application ID: " + appId);
+                ns = appId;
+            }
         });
     }
 
@@ -391,6 +410,9 @@ public class GradleAconfigPlugin implements Plugin<Project> {
 
                 String content = new String(Files.readAllBytes(path0), charset);
                 content = content.replaceAll("io.github.dot166.libaconfig", extension.flagsPackage);
+                if (content.contains(extension.flagsPackage + ".R")) {
+                    content = content.replaceAll(extension.flagsPackage + ".R", ns + ".R");
+                }
                 Files.write(path1, content.getBytes(charset));
                 file.delete();
             }
@@ -461,6 +483,7 @@ public class GradleAconfigPlugin implements Plugin<Project> {
         // manually recreate libaconfig build files and merge them with the project
         // this is done because for some stupid reason libaconfig cannot be added as a submodule dynamically
         if (project.getPlugins().hasPlugin("com.android.base")) {
+
             // Configure AGP source sets to include generated sources
             project.getExtensions().configure(BaseExtension.class, android -> {
                 android.getSourceSets().getByName("main").getJava().srcDir(new File(libaconfigDir, "java"));
