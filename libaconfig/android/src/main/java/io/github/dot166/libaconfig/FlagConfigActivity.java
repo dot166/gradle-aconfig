@@ -8,6 +8,8 @@ import androidx.preference.Preference;
 import androidx.preference.PreferenceScreen;
 import androidx.preference.SwitchPreference;
 
+import java.util.Objects;
+
 import io.github.dot166.jlib.app.jConfigActivity;
 
 
@@ -26,11 +28,14 @@ public class FlagConfigActivity extends jConfigActivity {
         @Override
         public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
             super.onCreatePreferences(savedInstanceState, rootKey);
+            requireActivity().setTitle(getString(R.string.feature_flags));
+            PreferenceScreen screen = getPreferenceScreen();
+            screen.removePreference(Objects.requireNonNull(findPreference("lib_category"))); // removes data setting, for preference screens never do this
 
             for (String key : keys) {
-                PreferenceScreen screen = getPreferenceScreen();
-                Preference pref = new SwitchPreference(requireContext());
+                SwitchPreference pref = new SwitchPreference(requireContext());
                 pref.setKey(key);
+                pref.setTitle(key);
                 screen.addPreference(pref);
             }
         }

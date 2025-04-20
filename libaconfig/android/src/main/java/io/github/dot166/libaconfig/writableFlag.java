@@ -3,6 +3,8 @@ package io.github.dot166.libaconfig;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import androidx.preference.PreferenceManager;
+
 import io.github.dot166.jlib.app.jLIBCoreApp;
 
 public class writableFlag {
@@ -16,7 +18,7 @@ public class writableFlag {
     }
 
     private SharedPreferences getFlagPrefsOptions() {
-        return mContext.getSharedPreferences(mContext.getPackageName() + "_feature_flags", 0);
+        return PreferenceManager.getDefaultSharedPreferences(mContext);
     }
 
     public boolean getFlagValue() {

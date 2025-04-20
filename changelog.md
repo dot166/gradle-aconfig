@@ -1,3 +1,3 @@
-# v1.0.7
+# v1.0.9
 
- - fix libaconfig manifest overriding the application/libraries manifest.
+ - cache previous version of libaconfig in case of failure

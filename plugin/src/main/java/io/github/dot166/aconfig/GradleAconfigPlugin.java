@@ -441,14 +441,22 @@ public class GradleAconfigPlugin implements Plugin<Project> {
         return directoryToBeDeleted.delete();
     }
     
-    private void createLibaconfig(Project project, AConfigExtension extension) {
+    private void createLibaconfig(Project project, AConfigExtension extension) throws IOException {
         String libaconfigName = "libaconfig";
         File libaconfigDir = new File(project.getBuildDir(), libaconfigName);
+        File libaconfigCacheDir = new File(project.getBuildDir(), "cache/" + libaconfigName);
 
         // Ensure the subproject directory exists
+        if (!libaconfigCacheDir.exists()) {
+            libaconfigCacheDir.mkdirs();
+        }
+        if (libaconfigDir.exists()) {
+            FileUtils.copyDirectory(libaconfigDir, libaconfigCacheDir);
+        }
         deleteDirectory(libaconfigDir);//libaconfigDir.delete();
         libaconfigDir.mkdirs();
         downloadLibaconfig(project, extension);
+        deleteDirectory(libaconfigCacheDir);//libaconfigCacheDir.delete();
 
         // manually recreate libaconfig build files and merge them with the project
         // this is done because for some stupid reason libaconfig cannot be added as a submodule dynamically
@@ -479,24 +487,35 @@ public class GradleAconfigPlugin implements Plugin<Project> {
 
         try {
             project.getLogger().lifecycle("Downloading libaconfig from GitHub.");
-            if (extension.githubToken == null) {
-                project.getLogger().warn("Warning! GitHub token is not set, the standard 60 requests per hour limit on the GitHub api v3 will apply");
-            }
             downloadGitHubFolder(apiUrl, project.getBuildDir().getAbsolutePath() + "/libaconfig", dir, project, extension);
             project.getLogger().lifecycle("libaconfig downloaded successfully.");
         } catch (Exception e) {
             project.getLogger().lifecycle(e.toString());
             project.getLogger().lifecycle(Arrays.toString(e.getStackTrace()));
-            throw new RuntimeException("Failed to download libaconfig", e);
+            String libaconfigName = "libaconfig";
+            File libaconfigDir = new File(project.getBuildDir(), libaconfigName);
+            File libaconfigCacheDir = new File(project.getBuildDir(), "cache/" + libaconfigName);
+            if (libaconfigCacheDir.exists()) {
+                try {
+                    project.getLogger().lifecycle("Failed to download libaconfig from GitHub.");
+                    project.getLogger().lifecycle("Using cached libaconfig");
+                    FileUtils.copyDirectory(libaconfigCacheDir, libaconfigDir);
+                    project.getLogger().lifecycle("libaconfig copied successfully.");
+                } catch (Exception e1) {
+                    project.getLogger().lifecycle(e1.toString());
+                    project.getLogger().lifecycle(Arrays.toString(e1.getStackTrace()));
+                    throw new RuntimeException("Failed to obtain libaconfig", e1);
+                }
+            } else {
+                project.getLogger().lifecycle("ERROR: No cached libaconfig found.");
+                throw new RuntimeException("Failed to download libaconfig", e);
+            }
         }
     }
 
     private void downloadGitHubFolder(String apiUrl, String destination, String buildtypedir, Project project, AConfigExtension extension) throws IOException {
         HttpURLConnection connection = (HttpURLConnection) new URL(apiUrl).openConnection();
         connection.setRequestProperty("Accept", "application/vnd.github.v3+json");
-        if (extension.githubToken != null) {
-            connection.setRequestProperty("Authorization", "Bearer " + extension.githubToken);
-        }
         int responseCode = connection.getResponseCode();
         if (responseCode != 200) {
             throw new IOException("GitHub API request failed. Response Code: " + responseCode);
