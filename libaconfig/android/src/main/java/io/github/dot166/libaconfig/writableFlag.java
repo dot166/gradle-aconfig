@@ -18,7 +18,7 @@ public class writableFlag {
     }
 
     private SharedPreferences getFlagPrefsOptions() {
-        return PreferenceManager.getDefaultSharedPreferences(mContext);
+        return mContext.getSharedPreferences(mContext.getPackageName() + "_feature_flags", 0);
     }
 
     public boolean getFlagValue() {

@@ -29,6 +29,7 @@ public class FlagConfigActivity extends jConfigActivity {
         @Override
         public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
             super.onCreatePreferences(savedInstanceState, rootKey);
+            getPreferenceManager().setSharedPreferencesName(requireContext().getPackageName() + "_feature_flags");
             requireActivity().setTitle(getString(R.string.feature_flags));
             PreferenceScreen screen = getPreferenceScreen();
             screen.removePreference(Objects.requireNonNull(findPreference("lib_category"))); // removes data setting, for preference screens never do this
