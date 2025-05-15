@@ -59,7 +59,7 @@ dependencies {
     implementation("com.android.tools.build:gradle:8.9.2")
     //implementation("com.android.tools:common:31.9.1")
     implementation(gradleKotlinDsl())
-    implementation("org.eclipse.jgit:org.eclipse.jgit:7.2.0.202503040940-r")
+    implementation("org.eclipse.jgit:org.eclipse.jgit:7.2.1.202505142326-r")
     implementation("commons-io:commons-io:2.19.0")
     implementation("com.google.code.gson:gson:2.13.0")
     // Use JUnit Jupiter for testing.
