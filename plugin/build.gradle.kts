@@ -56,7 +56,7 @@ mavenPublishing {
 }
 
 dependencies {
-    implementation("com.android.tools.build:gradle:8.10.1")
+    implementation("com.android.tools.build:gradle:8.11.1")
     //implementation("com.android.tools:common:31.9.1")
     implementation(gradleKotlinDsl())
     implementation("org.eclipse.jgit:org.eclipse.jgit:7.3.0.202506031305-r")
