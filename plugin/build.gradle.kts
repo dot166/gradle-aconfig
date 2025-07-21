@@ -60,7 +60,7 @@ dependencies {
     //implementation("com.android.tools:common:31.9.1")
     implementation(gradleKotlinDsl())
     implementation("org.eclipse.jgit:org.eclipse.jgit:7.3.0.202506031305-r")
-    implementation("commons-io:commons-io:2.19.0")
+    implementation("commons-io:commons-io:2.20.0")
     implementation("com.google.code.gson:gson:2.13.1")
     // Use JUnit Jupiter for testing.
     testImplementation("org.junit.jupiter:junit-jupiter:5.13.0")
