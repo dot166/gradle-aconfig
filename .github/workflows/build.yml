@@ -23,7 +23,7 @@ jobs:
           git config --global user.name "github-actions[bot]"
 
       - name: Setup JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'zulu'
           java-version: 17
