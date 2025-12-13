@@ -3,7 +3,6 @@
  */
 package io.github.dot166.aconfig;
 
-import org.apache.commons.io.FileUtils;
 import org.gradle.testkit.runner.BuildResult;
 import org.gradle.testkit.runner.GradleRunner;
 import org.junit.jupiter.api.Test;
@@ -54,18 +53,17 @@ class GradleAconfigPluginTest {
                 
                 android {
                     namespace = "io.github.dot166.aconfig.test"
-                    compileSdk = 35
+                    compileSdk = 36
                     defaultConfig {
-                        minSdk = 26
+                        minSdk = 29
                     }
                 }
                 
                 aconfig {
-                    aconfigFiles = "jLib.aconfig"
+                    aconfigFiles = mutableListOf("jLib.aconfig")
                     textProtoRepo = "https://github.com/dot166/platform_build_release"
-                    flagsPackage = "io.github.dot166.jlib.flags"
                 }""");
-        writeString(new File(projectDir, "local.properties"), "sdk.dir=" + projectDir.getAbsolutePath() + "/Sdk");
+        writeString(new File(projectDir, "local.properties"), "sdk.dir=" + new File(System.getProperty("user.home")).getAbsolutePath() + "/Android/Sdk");
         writeString(new File(manifestDir, "AndroidManifest.xml"), """
                 <?xml version="1.0" encoding="utf-8"?>
                 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
@@ -77,9 +75,8 @@ class GradleAconfigPluginTest {
                 </manifest>""");
 
         // Run the build
-        copySdk(projectDir);
         String command =
-                "curl -O https://raw.githubusercontent.com/dot166/jOS_j-lib/refs/heads/main/aconfig/jLib.aconfig";
+                "curl -O https://raw.githubusercontent.com/dot166/jOS_j-lib/refs/tags/v4.4.2/aconfig/jLib.aconfig";
         ProcessBuilder processBuilder = new ProcessBuilder(command.split(" "));
         processBuilder.directory(projectDir);
         Process process = processBuilder.start();
@@ -127,23 +124,21 @@ class GradleAconfigPluginTest {
                 
                 android {
                     namespace = "io.github.dot166.aconfig.test"
-                    compileSdk = 35
+                    compileSdk = 36
                     defaultConfig {
-                        minSdk = 26
+                        minSdk = 29
                     }
                 }
                 
                 aconfig {
-                    aconfigFiles = "jLib.aconfig"
+                    aconfigFiles = mutableListOf("jLib.aconfig")
                     textProtoRepo = "https://github.com/dot166/platform_build_release"
-                    flagsPackage = "io.github.dot166.jlib.flags"
                 }""");
-        writeString(new File(projectDir, "local.properties"), "sdk.dir=" + projectDir.getAbsolutePath() + "/Sdk");
+        writeString(new File(projectDir, "local.properties"), "sdk.dir=" + new File(System.getProperty("user.home")).getAbsolutePath() + "/Android/Sdk");
 
         // Run the build
-        copySdk(projectDir);
         String command =
-                "curl -O https://raw.githubusercontent.com/dot166/jOS_j-lib/refs/heads/main/aconfig/jLib.aconfig";
+                "curl -O https://raw.githubusercontent.com/dot166/jOS_j-lib/refs/tags/v4.4.2/aconfig/jLib.aconfig";
         ProcessBuilder processBuilder = new ProcessBuilder(command.split(" "));
         processBuilder.directory(projectDir);
         Process process = processBuilder.start();
@@ -174,14 +169,13 @@ class GradleAconfigPluginTest {
                 }
                 
                 aconfig {
-                    aconfigFiles = "jLib.aconfig"
+                    aconfigFiles = mutableListOf("jLib.aconfig")
                     textProtoRepo = "https://github.com/dot166/platform_build_release"
-                    flagsPackage = "io.github.dot166.jlib.flags"
                 }""");
 
         // Run the build
         String command =
-                "curl -O https://raw.githubusercontent.com/dot166/jOS_j-lib/refs/heads/main/aconfig/jLib.aconfig";
+                "curl -O https://raw.githubusercontent.com/dot166/jOS_j-lib/refs/tags/v4.4.2/aconfig/jLib.aconfig";
         ProcessBuilder processBuilder = new ProcessBuilder(command.split(" "));
         processBuilder.directory(projectDir);
         Process process = processBuilder.start();
@@ -218,15 +212,5 @@ class GradleAconfigPluginTest {
         }
         return directoryToBeDeleted.delete();
     }
-
-    void copySdk(File projectDir) {
-        File srcDir = new File(FileUtils.getUserDirectory().getAbsolutePath() + "/Android/Sdk");
-        File destDir = new File(projectDir.getAbsolutePath() + "/Sdk");
-
-        try {
-            FileUtils.copyDirectory(srcDir, destDir);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }}
 
 }

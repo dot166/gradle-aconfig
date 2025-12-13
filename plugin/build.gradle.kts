@@ -10,7 +10,8 @@ plugins {
     // Apply the Java Gradle plugin development plugin to add support for developing Gradle plugins
     `java-gradle-plugin`
     `maven-publish`
-    id("com.vanniktech.maven.publish") version "0.32.0"
+    id("com.vanniktech.maven.publish") version "0.35.0"
+    kotlin("jvm")
 }
 
 gradlePlugin {
@@ -56,16 +57,14 @@ mavenPublishing {
 }
 
 dependencies {
-    implementation("com.android.tools.build:gradle:8.10.1")
+    implementation("com.android.tools.build:gradle:8.13.2")
     //implementation("com.android.tools:common:31.9.1")
     implementation(gradleKotlinDsl())
-    implementation("org.eclipse.jgit:org.eclipse.jgit:7.3.0.202506031305-r")
-    implementation("commons-io:commons-io:2.19.0")
-    implementation("com.google.code.gson:gson:2.13.1")
     // Use JUnit Jupiter for testing.
-    testImplementation("org.junit.jupiter:junit-jupiter:5.13.0")
+    testImplementation("org.junit.jupiter:junit-jupiter:6.0.1")
 
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    implementation(kotlin("stdlib-jdk8"))
 }
 
 tasks.named<Test>("test") {
@@ -73,3 +72,6 @@ tasks.named<Test>("test") {
     useJUnitPlatform()
 }
 
+kotlin {
+    jvmToolchain(17)
+}

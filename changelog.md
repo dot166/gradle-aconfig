@@ -1,3 +1,5 @@
-# v1.0.13
+# v1.1.0
 
- - update agp
+ - update all dependencies
+ - remove libaconfig
+ - rewrite internal logic in kotlin
