@@ -13,4 +13,3 @@ kotlin-js-store/
 # Ignore Gradle build output directory
 build
 /local.properties
-libaconfig/android/src/main/java/io/github/dot166/libaconfig/Keys.java
