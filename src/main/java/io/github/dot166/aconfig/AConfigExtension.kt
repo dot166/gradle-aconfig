@@ -20,15 +20,6 @@ open class AConfigExtension {
     var textProtoRepo: String? = null
 
     /**
-     * aconfig file map for textproto files
-     *
-     *
-     * AOSP uses eng/userdebug for debug/development builds, user for release/user builds and uses the first part of the build id (e.g. bp1a, ap4a, etc) as common values for both
-     */
-    @JvmField
-    var commonBuildValues: MutableList<String> = mutableListOf("root", "ap2a", "ap3a", "ap4a", "bp1a", "bp2a", "bp3a", "bp4a")
-
-    /**
      * aconfig file map for release/user textproto files
      *
      *

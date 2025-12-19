@@ -41,7 +41,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build
-        run: ./gradlew :plugin:build
+        run: ./gradlew :build
 
       - name: Upload to new Release
         uses: softprops/action-gh-release@v2
