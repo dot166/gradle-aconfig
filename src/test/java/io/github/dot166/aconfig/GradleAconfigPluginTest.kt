@@ -22,12 +22,6 @@ internal class GradleAconfigPluginTest {
         val manifestDir = File(projectDir.absolutePath + "/src/main")
         Files.createDirectories(manifestDir.toPath())
         writeString(
-            File(projectDir, "gradle.properties"), """
-                org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
-                
-                """.trimIndent()
-        )
-        writeString(
             File(projectDir, "settings.gradle.kts"), """
                 pluginManagement {
                     repositories {
@@ -61,7 +55,7 @@ internal class GradleAconfigPluginTest {
                 }
                 
                 aconfig {
-                    aconfigFiles = mutableListOf("jLib.aconfig")
+                    aconfigFiles = mutableListOf("jLib.aconfig", "settingstheme.aconfig")
                     textProtoRepo = "https://github.com/dot166/platform_build_release"
                 }
                 """.trimIndent()
@@ -73,25 +67,30 @@ internal class GradleAconfigPluginTest {
         writeString(
             File(manifestDir, "AndroidManifest.xml"), """
                 <?xml version="1.0" encoding="utf-8"?>
-                <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-                    xmlns:tools="http://schemas.android.com/tools">
-                
-                    <application>
-                    </application>
-                
-                </manifest>
+                <manifest/>
                 
                 """.trimIndent()
         )
 
         // Run the build
-        val command =
+        var command =
             "curl -O https://raw.githubusercontent.com/dot166/jOS_j-lib/refs/tags/v4.4.2/aconfig/jLib.aconfig"
-        val processBuilder =
+        var processBuilder =
             ProcessBuilder(*command.split(" ".toRegex()).dropLastWhile { it.isEmpty() }
                 .toTypedArray())
         processBuilder.directory(projectDir)
-        val process = processBuilder.start()
+        var process = processBuilder.start()
+        process.waitFor()
+        if (process.exitValue() != 0) {
+            throw RuntimeException(toString_ReadAllBytes(process.errorStream))
+        }
+        command =
+            "curl -O https://raw.githubusercontent.com/dot166/platform_frameworks_base/refs/heads/16-qpr1/packages/SettingsLib/SettingsTheme/aconfig/settingstheme.aconfig"
+        processBuilder =
+            ProcessBuilder(*command.split(" ".toRegex()).dropLastWhile { it.isEmpty() }
+                .toTypedArray())
+        processBuilder.directory(projectDir)
+        process = processBuilder.start()
         process.waitFor()
         if (process.exitValue() != 0) {
             throw RuntimeException(toString_ReadAllBytes(process.errorStream))
@@ -111,12 +110,6 @@ internal class GradleAconfigPluginTest {
         val projectDir = File("build/test/agp-library")
         deleteDirectory(projectDir)
         Files.createDirectories(projectDir.toPath())
-        writeString(
-            File(projectDir, "gradle.properties"), """
-                org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
-                
-                """.trimIndent()
-        )
         writeString(
             File(projectDir, "settings.gradle.kts"), """
                 pluginManagement {
@@ -151,7 +144,7 @@ internal class GradleAconfigPluginTest {
                 }
                 
                 aconfig {
-                    aconfigFiles = mutableListOf("jLib.aconfig")
+                    aconfigFiles = mutableListOf("jLib.aconfig", "settingstheme.aconfig")
                     textProtoRepo = "https://github.com/dot166/platform_build_release"
                 }
                 """.trimIndent()
@@ -162,13 +155,24 @@ internal class GradleAconfigPluginTest {
         )
 
         // Run the build
-        val command =
+        var command =
             "curl -O https://raw.githubusercontent.com/dot166/jOS_j-lib/refs/tags/v4.4.2/aconfig/jLib.aconfig"
-        val processBuilder =
+        var processBuilder =
             ProcessBuilder(*command.split(" ".toRegex()).dropLastWhile { it.isEmpty() }
                 .toTypedArray())
         processBuilder.directory(projectDir)
-        val process = processBuilder.start()
+        var process = processBuilder.start()
+        process.waitFor()
+        if (process.exitValue() != 0) {
+            throw RuntimeException(toString_ReadAllBytes(process.errorStream))
+        }
+        command =
+            "curl -O https://raw.githubusercontent.com/dot166/platform_frameworks_base/refs/heads/16-qpr1/packages/SettingsLib/SettingsTheme/aconfig/settingstheme.aconfig"
+        processBuilder =
+            ProcessBuilder(*command.split(" ".toRegex()).dropLastWhile { it.isEmpty() }
+                .toTypedArray())
+        processBuilder.directory(projectDir)
+        process = processBuilder.start()
         process.waitFor()
         if (process.exitValue() != 0) {
             throw RuntimeException(toString_ReadAllBytes(process.errorStream))
@@ -188,12 +192,6 @@ internal class GradleAconfigPluginTest {
         val projectDir = File("build/test/java")
         deleteDirectory(projectDir)
         Files.createDirectories(projectDir.toPath())
-        writeString(
-            File(projectDir, "gradle.properties"), """
-                org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
-                
-                """.trimIndent()
-        )
         writeString(File(projectDir, "settings.gradle.kts"), "")
         writeString(
             File(projectDir, "build.gradle.kts"), """
@@ -203,20 +201,31 @@ internal class GradleAconfigPluginTest {
                 }
                 
                 aconfig {
-                    aconfigFiles = mutableListOf("jLib.aconfig")
+                    aconfigFiles = mutableListOf("jLib.aconfig", "settingstheme.aconfig")
                     textProtoRepo = "https://github.com/dot166/platform_build_release"
                 }
                 """.trimIndent()
         )
 
         // Run the build
-        val command =
+        var command =
             "curl -O https://raw.githubusercontent.com/dot166/jOS_j-lib/refs/tags/v4.4.2/aconfig/jLib.aconfig"
-        val processBuilder =
+        var processBuilder =
             ProcessBuilder(*command.split(" ".toRegex()).dropLastWhile { it.isEmpty() }
                 .toTypedArray())
         processBuilder.directory(projectDir)
-        val process = processBuilder.start()
+        var process = processBuilder.start()
+        process.waitFor()
+        if (process.exitValue() != 0) {
+            throw RuntimeException(toString_ReadAllBytes(process.errorStream))
+        }
+        command =
+            "curl -O https://raw.githubusercontent.com/dot166/platform_frameworks_base/refs/heads/16-qpr1/packages/SettingsLib/SettingsTheme/aconfig/settingstheme.aconfig"
+        processBuilder =
+            ProcessBuilder(*command.split(" ".toRegex()).dropLastWhile { it.isEmpty() }
+                .toTypedArray())
+        processBuilder.directory(projectDir)
+        process = processBuilder.start()
         process.waitFor()
         if (process.exitValue() != 0) {
             throw RuntimeException(toString_ReadAllBytes(process.errorStream))
@@ -236,12 +245,6 @@ internal class GradleAconfigPluginTest {
         val projectDir = File("build/test/kotlin")
         deleteDirectory(projectDir)
         Files.createDirectories(projectDir.toPath())
-        writeString(
-            File(projectDir, "gradle.properties"), """
-                org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
-                
-                """.trimIndent()
-        )
         writeString(
             File(projectDir, "settings.gradle.kts"), """
                 pluginManagement {
@@ -264,20 +267,31 @@ internal class GradleAconfigPluginTest {
                 }
                 
                 aconfig {
-                    aconfigFiles = mutableListOf("jLib.aconfig")
+                    aconfigFiles = mutableListOf("jLib.aconfig", "settingstheme.aconfig")
                     textProtoRepo = "https://github.com/dot166/platform_build_release"
                 }
                 """.trimIndent()
         )
 
         // Run the build
-        val command =
+        var command =
             "curl -O https://raw.githubusercontent.com/dot166/jOS_j-lib/refs/tags/v4.4.2/aconfig/jLib.aconfig"
-        val processBuilder =
+        var processBuilder =
             ProcessBuilder(*command.split(" ".toRegex()).dropLastWhile { it.isEmpty() }
                 .toTypedArray())
         processBuilder.directory(projectDir)
-        val process = processBuilder.start()
+        var process = processBuilder.start()
+        process.waitFor()
+        if (process.exitValue() != 0) {
+            throw RuntimeException(toString_ReadAllBytes(process.errorStream))
+        }
+        command =
+            "curl -O https://raw.githubusercontent.com/dot166/platform_frameworks_base/refs/heads/16-qpr1/packages/SettingsLib/SettingsTheme/aconfig/settingstheme.aconfig"
+        processBuilder =
+            ProcessBuilder(*command.split(" ".toRegex()).dropLastWhile { it.isEmpty() }
+                .toTypedArray())
+        processBuilder.directory(projectDir)
+        process = processBuilder.start()
         process.waitFor()
         if (process.exitValue() != 0) {
             throw RuntimeException(toString_ReadAllBytes(process.errorStream))
