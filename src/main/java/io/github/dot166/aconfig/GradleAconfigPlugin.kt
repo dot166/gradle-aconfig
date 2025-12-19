@@ -40,7 +40,7 @@ class GradleAconfigPlugin : Plugin<Project?> {
                 if (!properties.isEmpty()) {
                     generateJavaFile(this, debuggable, extension, buildDir, properties)
                     logger
-                        .lifecycle("Generated Flags.java with properties from " + extension.aconfigFiles + " and textproto files")
+                        .lifecycle("Generated Flags.java files with properties from " + extension.aconfigFiles + " and textproto files")
                 } else {
                     throw RuntimeException("No aconfig files found at " + extension.aconfigFiles)
                 }
