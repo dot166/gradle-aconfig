@@ -85,7 +85,7 @@ internal class GradleAconfigPluginTest {
             throw RuntimeException(toString_ReadAllBytes(process.errorStream))
         }
         command =
-            "curl -O https://raw.githubusercontent.com/dot166/platform_frameworks_base/refs/heads/16-qpr1/packages/SettingsLib/SettingsTheme/aconfig/settingstheme.aconfig"
+            "curl -O https://raw.githubusercontent.com/dot166/platform_frameworks_base/refs/heads/16-qpr2/packages/SettingsLib/SettingsTheme/aconfig/settingstheme.aconfig"
         processBuilder =
             ProcessBuilder(*command.split(" ".toRegex()).dropLastWhile { it.isEmpty() }
                 .toTypedArray())
@@ -167,7 +167,7 @@ internal class GradleAconfigPluginTest {
             throw RuntimeException(toString_ReadAllBytes(process.errorStream))
         }
         command =
-            "curl -O https://raw.githubusercontent.com/dot166/platform_frameworks_base/refs/heads/16-qpr1/packages/SettingsLib/SettingsTheme/aconfig/settingstheme.aconfig"
+            "curl -O https://raw.githubusercontent.com/dot166/platform_frameworks_base/refs/heads/16-qpr2/packages/SettingsLib/SettingsTheme/aconfig/settingstheme.aconfig"
         processBuilder =
             ProcessBuilder(*command.split(" ".toRegex()).dropLastWhile { it.isEmpty() }
                 .toTypedArray())
@@ -220,7 +220,7 @@ internal class GradleAconfigPluginTest {
             throw RuntimeException(toString_ReadAllBytes(process.errorStream))
         }
         command =
-            "curl -O https://raw.githubusercontent.com/dot166/platform_frameworks_base/refs/heads/16-qpr1/packages/SettingsLib/SettingsTheme/aconfig/settingstheme.aconfig"
+            "curl -O https://raw.githubusercontent.com/dot166/platform_frameworks_base/refs/heads/16-qpr2/packages/SettingsLib/SettingsTheme/aconfig/settingstheme.aconfig"
         processBuilder =
             ProcessBuilder(*command.split(" ".toRegex()).dropLastWhile { it.isEmpty() }
                 .toTypedArray())
@@ -286,7 +286,7 @@ internal class GradleAconfigPluginTest {
             throw RuntimeException(toString_ReadAllBytes(process.errorStream))
         }
         command =
-            "curl -O https://raw.githubusercontent.com/dot166/platform_frameworks_base/refs/heads/16-qpr1/packages/SettingsLib/SettingsTheme/aconfig/settingstheme.aconfig"
+            "curl -O https://raw.githubusercontent.com/dot166/platform_frameworks_base/refs/heads/16-qpr2/packages/SettingsLib/SettingsTheme/aconfig/settingstheme.aconfig"
         processBuilder =
             ProcessBuilder(*command.split(" ".toRegex()).dropLastWhile { it.isEmpty() }
                 .toTypedArray())
