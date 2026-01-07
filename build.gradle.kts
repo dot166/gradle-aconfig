@@ -49,7 +49,7 @@ mavenPublishing {
 dependencies {
     implementation("com.android.tools.build:gradle:8.13.2")
     // Use JUnit Jupiter for testing.
-    testImplementation("org.junit.jupiter:junit-jupiter:6.0.1")
+    testImplementation("org.junit.jupiter:junit-jupiter:6.0.2")
 
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
