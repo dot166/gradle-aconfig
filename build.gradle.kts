@@ -47,7 +47,7 @@ mavenPublishing {
 }
 
 dependencies {
-    implementation("com.android.tools.build:gradle:8.13.2")
+    implementation("com.android.tools.build:gradle:9.0.0")
     // Use JUnit Jupiter for testing.
     testImplementation("org.junit.jupiter:junit-jupiter:6.0.1")
 
