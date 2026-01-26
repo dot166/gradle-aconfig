@@ -1,8 +1,8 @@
 package io.github.dot166.aconfig
 
+import com.android.build.api.dsl.CommonExtension
 import com.android.build.api.variant.AndroidComponentsExtension
 import com.android.build.api.variant.Variant
-import com.android.build.gradle.BaseExtension
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.Task
@@ -12,7 +12,7 @@ import java.io.IOException
 import java.io.InputStream
 import java.nio.file.Files
 
-class GradleAconfigPlugin : Plugin<Project?> {
+class GradleAconfigPlugin : Plugin<Project> {
     var aconfigOutputDir: File? = null
     override fun apply(project: Project) {
         val extension = project.extensions
@@ -49,9 +49,9 @@ class GradleAconfigPlugin : Plugin<Project?> {
 
         if (project.plugins.hasPlugin("com.android.base")) {
             project.extensions.configure(
-                BaseExtension::class.java)
+                CommonExtension::class.java)
                 {
-                    sourceSets.getByName("main").java.srcDir(aconfigOutputDir!!)
+                    sourceSets.getByName("main").java.directories.add(aconfigOutputDir!!.path)
                 }
             project.tasks.getByName("preBuild").dependsOn("generateFlags")
 
@@ -137,7 +137,7 @@ class GradleAconfigPlugin : Plugin<Project?> {
     }
 
     private fun parseReadWriteFlagAllowed(tmpDir: File): Boolean {
-        var value: Boolean = false // default
+        var value = false // default
 
         try {
             val lines = Files.readAllLines(File(tmpDir, "flag_values/bp1a/RELEASE_ACONFIG_REQUIRE_ALL_READ_ONLY.textproto").toPath())
