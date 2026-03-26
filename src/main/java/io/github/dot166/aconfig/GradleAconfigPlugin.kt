@@ -38,7 +38,7 @@ class GradleAconfigPlugin : Plugin<Project> {
                     }
                 }
                 if (!properties.isEmpty()) {
-                    generateJavaFile(this, debuggable, extension, buildDir, properties)
+                    generateJavaFile(this, debuggable, extension, buildDir, properties, projectDir)
                     logger
                         .lifecycle("Generated Flags.java files with properties from " + extension.aconfigFiles + " and textproto files")
                 } else {
@@ -136,50 +136,6 @@ class GradleAconfigPlugin : Plugin<Project> {
         }
     }
 
-    private fun parseReadWriteFlagAllowed(tmpDir: File): Boolean {
-        var value = false // default
-
-        try {
-            val lines = Files.readAllLines(File(tmpDir, "flag_values/bp1a/RELEASE_ACONFIG_REQUIRE_ALL_READ_ONLY.textproto").toPath())
-
-            var insideFlag = false
-
-            for (rawLine in lines) {
-                val line = rawLine.trim { it <= ' ' }
-
-                if (line.startsWith("name:")) {
-                    if (line.split(": ".toRegex(), limit = 2).toTypedArray()[1]
-                        .replace("\"", "")
-                        .trim { it <= ' ' } != "RELEASE_ACONFIG_REQUIRE_ALL_READ_ONLY") {
-                        throw RuntimeException("ERROR!, Required File is missing or corrupted")
-                    }
-                    continue
-                }
-
-                if (line.startsWith("value: {")) {
-                    insideFlag = true
-                    continue
-                }
-
-                if (line.startsWith("}")) {
-                    insideFlag = false
-                    continue
-                }
-
-                if (insideFlag && line.startsWith("bool_value:")) {
-                    val flagValue = line.split(": ".toRegex(), limit = 2).toTypedArray()[1]
-                        .replace("\"", "")
-                        .trim { it <= ' ' }
-                    value = !parseState(flagValue)
-                }
-            }
-
-            return value
-        } catch (e: IOException) {
-            throw RuntimeException("ERROR!, Required File is missing or corrupted", e)
-        }
-    }
-
     private fun parseState(str: String?): Boolean {
         return when (str) {
             "false", "true" -> {
@@ -202,66 +158,64 @@ class GradleAconfigPlugin : Plugin<Project> {
         debuggable: Boolean,
         extension: AConfigExtension,
         buildDir: File,
-        properties: MutableList<AConfig>
+        properties: MutableList<AConfig>,
+        projectDir: File
     ) {
-        val repoUrl = extension.textProtoRepo
-            ?: throw RuntimeException("repo url value is not set, please set it using the build.gradle(.kts) file")
+        var buildFolders: MutableList<String>
+        var dirs: MutableList<File>
+        if (extension.isAOSP) {
+            val repoUrl = extension.textProtoRepo
+                ?: throw RuntimeException("repo url value is not set, please set it using the build.gradle(.kts) file")
 
-        val tempDir = File(buildDir, "tempRepo")
-        deleteDirectory(tempDir)
-        tempDir.mkdirs()
+            val tempDir = File(buildDir, "tempRepo")
+            deleteDirectory(tempDir)
+            tempDir.mkdirs()
 
-        project.logger.lifecycle("Cloning repository: $repoUrl")
-        try {
-            var command =
-                "git clone --no-checkout --depth=1 --filter=tree:0 " + repoUrl + " " + tempDir.path
-            var processBuilder =
-                ProcessBuilder(*command.split(" ".toRegex()).dropLastWhile { it.isEmpty() }
-                    .toTypedArray())
-            processBuilder.directory(buildDir)
-            var process = processBuilder.start()
-            process.waitFor()
-            if (process.exitValue() != 0) {
-                throw RuntimeException(toStringReadAllBytes(process.errorStream))
+            project.logger.lifecycle("Cloning repository: $repoUrl")
+            try {
+                var command =
+                    "git clone --no-checkout --depth=1 --filter=tree:0 " + repoUrl + " " + tempDir.path
+                var processBuilder =
+                    ProcessBuilder(*command.split(" ".toRegex()).dropLastWhile { it.isEmpty() }
+                        .toTypedArray())
+                processBuilder.directory(buildDir)
+                var process = processBuilder.start()
+                process.waitFor()
+                if (process.exitValue() != 0) {
+                    throw RuntimeException(toStringReadAllBytes(process.errorStream))
+                }
+
+                command = "git sparse-checkout set --no-cone /aconfig"
+                processBuilder =
+                    ProcessBuilder(*command.split(" ".toRegex()).dropLastWhile { it.isEmpty() }
+                        .toTypedArray())
+                processBuilder.directory(tempDir)
+                process = processBuilder.start()
+                process.waitFor()
+                if (process.exitValue() != 0) {
+                    throw RuntimeException(toStringReadAllBytes(process.errorStream))
+                }
+
+                command = "git checkout"
+                processBuilder =
+                    ProcessBuilder(*command.split(" ".toRegex()).dropLastWhile { it.isEmpty() }
+                        .toTypedArray())
+                processBuilder.directory(tempDir)
+                process = processBuilder.start()
+                process.waitFor()
+                if (process.exitValue() != 0) {
+                    throw RuntimeException(toStringReadAllBytes(process.errorStream))
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
 
-            command = "git sparse-checkout set --no-cone /aconfig"
-            processBuilder =
-                ProcessBuilder(*command.split(" ".toRegex()).dropLastWhile { it.isEmpty() }
-                    .toTypedArray())
-            processBuilder.directory(tempDir)
-            process = processBuilder.start()
-            process.waitFor()
-            if (process.exitValue() != 0) {
-                throw RuntimeException(toStringReadAllBytes(process.errorStream))
-            }
-
-            command = "git sparse-checkout add /flag_values/bp1a"
-            processBuilder =
-                ProcessBuilder(*command.split(" ".toRegex()).dropLastWhile { it.isEmpty() }
-                    .toTypedArray())
-            processBuilder.directory(tempDir)
-            process = processBuilder.start()
-            process.waitFor()
-            if (process.exitValue() != 0) {
-                throw RuntimeException(toStringReadAllBytes(process.errorStream))
-            }
-
-            command = "git checkout"
-            processBuilder =
-                ProcessBuilder(*command.split(" ".toRegex()).dropLastWhile { it.isEmpty() }
-                    .toTypedArray())
-            processBuilder.directory(tempDir)
-            process = processBuilder.start()
-            process.waitFor()
-            if (process.exitValue() != 0) {
-                throw RuntimeException(toStringReadAllBytes(process.errorStream))
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
+            buildFolders = mutableListOf("root", "ap2a", "ap3a", "ap4a", "bp1a", "bp2a", "bp3a", "bp4a")
+            dirs = mutableListOf(File(tempDir, "aconfig"))
+        } else {
+            buildFolders = mutableListOf("")
+            dirs = extractDirsFromAConfig(extension.aconfigFiles, projectDir)
         }
-
-        val buildFolders: MutableList<String> = mutableListOf("root", "ap2a", "ap3a", "ap4a", "bp1a", "bp2a", "bp3a", "bp4a")
         if (debuggable) {
             buildFolders.add("userdebug")
             buildFolders.add("eng")
@@ -278,15 +232,17 @@ class GradleAconfigPlugin : Plugin<Project> {
         val listFiles: MutableList<File> = ArrayList()
         for (buildFolder in buildFolders) {
             for (aconfig in properties) {
-                val targetFolder =
-                    File(tempDir, "aconfig/" + buildFolder + "/" + aconfig.packageName)
-                if (targetFolder.exists() && targetFolder.isDirectory) {
-                    val files = targetFolder.listFiles { file: File ->
-                        file.name.endsWith(".textproto")
+                for (dir in dirs) {
+                    val targetFolder =
+                        File(dir, buildFolder + "/" + aconfig.packageName)
+                    if (targetFolder.exists() && targetFolder.isDirectory) {
+                        val files = targetFolder.listFiles { file: File ->
+                            file.name.endsWith(".textproto")
+                        }
+                        listFiles.addAll(listOf<File>(*files))
+                    } else {
+                        listFiles.addAll(mutableListOf())
                     }
-                    listFiles.addAll(listOf<File>(*files))
-                } else {
-                    listFiles.addAll(mutableListOf())
                 }
             }
         }
@@ -327,8 +283,8 @@ class GradleAconfigPlugin : Plugin<Project> {
                                 }
 
                                 "permission" -> {
-                                    if (parts[1]!!.trim { it <= ' ' } == "READ_WRITE" && parseReadWriteFlagAllowed(tempDir)) {
-                                        throw RuntimeException("read-write flags are not allowed in aosp, it is disabled by flag 'RELEASE_ACONFIG_REQUIRE_ALL_READ_ONLY'")
+                                    if (parts[1]!!.trim { it <= ' ' } == "READ_WRITE") {
+                                        throw RuntimeException("read-write flags are not allowed in aosp, it is disabled by flag 'RELEASE_ACONFIG_REQUIRE_ALL_READ_ONLY', blocking read-write flags is not a togglable option in gradle-aconfig, as it does not support modifying flags due to the way that the file is generated")
                                     } else if (parts[1]!!.trim { it <= ' ' } != "READ_ONLY" && parts[1]!!.trim { it <= ' ' } != "READ_WRITE") {
                                         val perm = parts[1]!!.trim { it <= ' ' }
                                         throw RuntimeException("invalid permission '$perm' for $name")
@@ -375,6 +331,20 @@ class GradleAconfigPlugin : Plugin<Project> {
                 throw RuntimeException("Error writing Flags Java file", e)
             }
         }
+    }
+
+    private fun extractDirsFromAConfig(aconfigFiles: MutableList<String>, projectDir: File): MutableList<File> {
+        val list = mutableListOf<File>()
+        for (i in aconfigFiles.indices) {
+            val configFile = File(projectDir, aconfigFiles[i])
+            val dir = configFile.parentFile
+            if (dir.isDirectory) {
+                list.add(dir)
+            } else {
+                throw IllegalArgumentException("how did you even make the parent directory, not be a directory???")
+            }
+        }
+        return list
     }
 
     fun deleteDirectory(directoryToBeDeleted: File): Boolean {

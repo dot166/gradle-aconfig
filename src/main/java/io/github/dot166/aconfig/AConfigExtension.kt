@@ -14,7 +14,7 @@ open class AConfigExtension {
      * the repo that contains aconfig textproto
      *
      *
-     * the textproto files should be in a different repo than the one the application is in (in AOSP is is [platform/build/release](https://cs.android.com/android/platform/superproject/+/android-latest-release:build/release/))
+     * the textproto files should be in a different repo than the one the application is in (in AOSP is is [platform/build/release](https://cs.android.com/android/platform/superproject/+/android-latest-release:build/release/)) if the isAOSP config flag is true (it is by default)
      */
     @JvmField
     var textProtoRepo: String? = null
@@ -36,4 +36,10 @@ open class AConfigExtension {
      */
     @JvmField
     var customDebugBuildValues: MutableList<String> = mutableListOf()
+
+    /**
+     * boolean config flag that tells gradle-aconfig if this is an AOSP project
+     */
+    @JvmField
+    var isAOSP: Boolean = true
 }
