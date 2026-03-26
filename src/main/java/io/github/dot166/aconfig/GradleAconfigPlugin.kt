@@ -6,7 +6,6 @@ import com.android.build.api.variant.Variant
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.Task
-import org.gradle.api.plugins.JavaPluginExtension
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
@@ -47,49 +46,21 @@ class GradleAconfigPlugin : Plugin<Project> {
             }
         }
 
-        if (project.plugins.hasPlugin("com.android.base")) {
-            project.extensions.configure(
-                CommonExtension::class.java)
-                {
-                    sourceSets.getByName("main").java.directories.add(aconfigOutputDir!!.path)
-                }
-            project.tasks.getByName("preBuild").dependsOn("generateFlags")
+        project.extensions.configure(
+            CommonExtension::class.java)
+        {
+            sourceSets.getByName("main").java.directories.add(aconfigOutputDir!!.path)
+        }
+        project.tasks.getByName("preBuild").dependsOn("generateFlags")
 
-            androidComponents!!.onVariants(
-                androidComponents.selector().all()){ variant: Variant ->
-                    if (project.plugins.hasPlugin("com.android.application")) {
-                        debuggable = variant.debuggable
-                    } else {
-                        val buildType = variant.buildType
-                        debuggable = buildType != "release"
-                    }
-                }
-        } else if (project.plugins.hasPlugin("org.jetbrains.kotlin.jvm")) {
-            project.extensions.getByType(JavaPluginExtension::class.java)
-                .sourceSets.getByName("main")
-                .java.srcDir(aconfigOutputDir!!)
-            project.tasks.getByName("compileKotlin").dependsOn("generateFlags")
-            project.logger.lifecycle("kotlin projects do not have build types")
-            val propObj = project.findProperty("isDebug")
-            val prop: Boolean = if (propObj != null) {
-                propObj as Boolean
+        androidComponents!!.onVariants(
+            androidComponents.selector().all()){ variant: Variant ->
+            if (project.plugins.hasPlugin("com.android.application")) {
+                debuggable = variant.debuggable
             } else {
-                false
+                val buildType = variant.buildType
+                debuggable = buildType != "release"
             }
-            debuggable = prop
-        } else if (project.plugins.hasPlugin("org.gradle.java")) {
-            project.extensions.getByType(JavaPluginExtension::class.java)
-                .sourceSets.getByName("main")
-                .java.srcDir(aconfigOutputDir!!)
-            project.tasks.getByName("compileJava").dependsOn("generateFlags")
-            project.logger.lifecycle("java projects do not have build types")
-            val propObj = project.findProperty("isDebug")
-            val prop: Boolean = if (propObj != null) {
-                propObj as Boolean
-            } else {
-                false
-            }
-            debuggable = prop
         }
     }
 
