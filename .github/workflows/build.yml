@@ -44,7 +44,7 @@ jobs:
         run: ./gradlew :build
 
       - name: Upload to new Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'dot166/gradle-aconfig' && env.RELEASE == '1' }}
         with:
           body_path: changelog.md
