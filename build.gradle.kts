@@ -1,7 +1,7 @@
 plugins {
     `kotlin-dsl`
     `maven-publish`
-    id("com.vanniktech.maven.publish") version "0.36.0"
+    alias(libs.plugins.maven.publish)
 }
 
 gradlePlugin {
@@ -47,10 +47,9 @@ mavenPublishing {
 }
 
 dependencies {
-    implementation("com.android.tools.build:gradle:9.1.0")
+    implementation(libs.agp)
     // Use JUnit Jupiter for testing.
-    testImplementation("org.junit.jupiter:junit-jupiter:6.0.3")
-
+    testImplementation(libs.junit)
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

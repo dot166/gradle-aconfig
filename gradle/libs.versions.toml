@@ -1,0 +1,11 @@
+[versions]
+agp = "9.2.0"
+maven = "0.36.0"
+junit = "6.0.3"
+
+[plugins]
+maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "maven" }
+
+[libraries]
+agp = { group = "com.android.tools.build", name = "gradle", version.ref = "agp" }
+junit = { group = "org.junit.jupiter", name = "junit-jupiter", version.ref = "junit" }
