@@ -43,6 +43,10 @@ jobs:
       - name: Build
         run: ./gradlew :build
 
+      - name: Publish to Maven Central
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'dot166/gradle-aconfig' && env.RELEASE == '1' }}
+        run: ./gradlew publishAndReleaseToMavenCentral --no-configuration-cache
+
       - name: Upload to new Release
         uses: softprops/action-gh-release@v3
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'dot166/gradle-aconfig' && env.RELEASE == '1' }}
@@ -50,7 +54,3 @@ jobs:
           body_path: changelog.md
           tag_name: ${{ env.VERSION }}
           make_latest: true
-
-      - name: Publish to Maven Central
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'dot166/gradle-aconfig' && env.RELEASE == '1' }}
-        run: ./gradlew publishAndReleaseToMavenCentral --no-configuration-cache
