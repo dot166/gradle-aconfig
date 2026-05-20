@@ -1,7 +1,7 @@
 [versions]
 agp = "9.2.0"
 maven = "0.36.0"
-junit = "6.0.3"
+junit = "6.1.0"
 
 [plugins]
 maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "maven" }
