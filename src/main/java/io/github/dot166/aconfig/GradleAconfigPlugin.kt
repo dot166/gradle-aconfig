@@ -181,7 +181,7 @@ class GradleAconfigPlugin : Plugin<Project> {
                 e.printStackTrace()
             }
 
-            buildFolders = mutableListOf("root", "ap2a", "ap3a", "ap4a", "bp1a", "bp2a", "bp3a", "bp4a")
+            buildFolders = mutableListOf("root", "ap2a", "ap3a", "ap4a", "bp1a", "bp2a", "bp3a", "bp4a", "cp1a", "cp2a")
             dirs = mutableListOf(File(tempDir, "aconfig"))
         } else {
             buildFolders = mutableListOf("")
